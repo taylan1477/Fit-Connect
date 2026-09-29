@@ -49,3 +49,28 @@
 
 ### 3. Navigation
 - [x] Register `ClientMetricsHistory` in `AppNavigator.tsx`.
+
+---
+
+## 🚀 Day 4: Tanita Klinik Vücut Analiz Raporları Arşivi (PDF Vault)
+**Status:** Completed
+**Target Delivery:** Secure Tanita body composition PDF archive, document picker integration, native PDF viewer/sharing, and client & trainer viewing.
+
+### 1. Document & File Handling Engine
+- [x] Install and configure `expo-document-picker` and `expo-sharing`.
+- [x] Extend `TanitaReport` type with `clinic_name` and `file_size`.
+- [x] Add Tanita API methods with offline mock fallback in `src/services/api.ts` (`getTanitaReports`, `addTanitaReport`).
+
+### 2. Trainer Interface (ClientDetailScreen)
+- [x] Add Tanita reports card with badge counter and action button (+ Rapor Ekle).
+- [x] Implement `TanitaUploadModal` with native document picker (`type: 'application/pdf'`).
+- [x] Form fields: PDF picker, date, clinic/machine name, trainer notes.
+- [x] Native share/viewer trigger via `expo-sharing` (`Sharing.shareAsync` or `Linking.openURL`).
+
+### 3. Client Interface (MyMetricsScreen)
+- [x] Fetch active client's Tanita reports via `api.getTanitaReports`.
+- [x] Render dedicated Tanita PDF Vault card with report badges, clinic tags, notes.
+- [x] Tap to view/share PDF with native share sheet.
+- [x] Pull-to-refresh and empty state handling.
+- [x] Modern PT-App dark aesthetic styling with BMI calculation banner.
+

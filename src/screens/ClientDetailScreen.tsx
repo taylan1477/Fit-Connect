@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Modal, ScrollView, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Modal, ScrollView, TextInput, ActivityIndicator, RefreshControl, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
+import * as Sharing from 'expo-sharing';
 import { useTheme } from '../context/ThemeContext';
 import { api } from '../services/api';
-import { Package, ClientMetric } from '../types';
+import { Package, ClientMetric, TanitaReport } from '../types';
 
 const WORKOUT_TYPES = [
   'Hipertrofi (Push/Pull/Legs)',
@@ -34,9 +36,20 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
   const [dietModalVisible, setDietModalVisible] = useState(false);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [metricModalVisible, setMetricModalVisible] = useState(false);
+  const [tanitaModalVisible, setTanitaModalVisible] = useState(false);
   
   const [customText, setCustomText] = useState('');
   const [paymentAmountStr, setPaymentAmountStr] = useState('');
+
+  // Tanita Reports Vault State
+  const [tanitaReports, setTanitaReports] = useState<TanitaReport[]>([]);
+  const [selectedDocument, setSelectedDocument] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
+  const [tanitaForm, setTanitaForm] = useState({
+    date: new Date().toISOString().split('T')[0],
+    clinic_name: '',
+    note: '',
+  });
+  const [uploadingReport, setUploadingReport] = useState(false);
 
   // 9-Point Metric Form State
   const [metricForm, setMetricForm] = useState({
@@ -47,14 +60,16 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
 
   const loadData = async () => {
     try {
-      const [pkg, metricsData] = await Promise.all([
+      const [pkg, metricsData, reportsData] = await Promise.all([
         api.getClientPackage(client.id),
-        api.getMetrics(client.id)
+        api.getMetrics(client.id),
+        api.getTanitaReports(client.id),
       ]);
       setActivePackage(pkg);
       if (metricsData && metricsData.length > 0) {
         setLatestMetric(metricsData[0]); // newest is first
       }
+      setTanitaReports(reportsData || []);
     } catch (error) {
       console.warn('Error loading client detail data:', error);
     } finally {
@@ -70,6 +85,81 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
+  };
+
+  const handlePickDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setSelectedDocument(result.assets[0]);
+      }
+    } catch (err) {
+      console.warn('Error picking document:', err);
+    }
+  };
+
+  const handleOpenReport = async (report: TanitaReport) => {
+    try {
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (isAvailable && report.file_url.startsWith('file://')) {
+        await Sharing.shareAsync(report.file_url, {
+          mimeType: 'application/pdf',
+          dialogTitle: `${report.file_name} Görüntüle`,
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        const canOpen = await Linking.canOpenURL(report.file_url);
+        if (canOpen) {
+          await Linking.openURL(report.file_url);
+        } else {
+          Alert.alert(
+            'Tanita Klinik Raporu',
+            `Klinik: ${report.clinic_name || 'Tanita Analizi'}\nTarih: ${report.date}\nDosya: ${report.file_name}\nNot: ${report.note || 'Özel not girilmemiş.'}`
+          );
+        }
+      }
+    } catch (err: any) {
+      Alert.alert(
+        'Tanita Klinik Raporu',
+        `Klinik: ${report.clinic_name || 'Tanita Analizi'}\nTarih: ${report.date}\nDosya: ${report.file_name}\nNot: ${report.note || 'Özel not girilmemiş.'}`
+      );
+    }
+  };
+
+  const handleSaveTanitaReport = async () => {
+    if (!selectedDocument && !tanitaForm.clinic_name) {
+      Alert.alert('Eksik Bilgi', 'Lütfen bir PDF dosyası seçin veya klinik/analiz adı girin.');
+      return;
+    }
+
+    try {
+      setUploadingReport(true);
+      const newReport: Omit<TanitaReport, 'id' | 'created_at'> = {
+        client_id: client.id,
+        trainer_id: 'trainer-1',
+        date: tanitaForm.date || new Date().toISOString().split('T')[0],
+        file_name: selectedDocument ? selectedDocument.name : `${client.full_name || client.name || 'Danisan'}_Tanita_Raporu_${tanitaForm.date}.pdf`,
+        file_url: selectedDocument ? selectedDocument.uri : 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+        clinic_name: tanitaForm.clinic_name || 'Klinik Vücut Analizi',
+        file_size: selectedDocument?.size ? `${(selectedDocument.size / (1024 * 1024)).toFixed(1)} MB` : '1.1 MB',
+        note: tanitaForm.note,
+      };
+
+      await api.addTanitaReport(newReport);
+      Alert.alert('Başarılı 🎉', 'Tanita klinik raporu arşive eklendi.');
+      setTanitaModalVisible(false);
+      setSelectedDocument(null);
+      setTanitaForm({ date: new Date().toISOString().split('T')[0], clinic_name: '', note: '' });
+      await loadData();
+    } catch (err: any) {
+      Alert.alert('Hata', err.message || 'Rapor eklenemedi.');
+    } finally {
+      setUploadingReport(false);
+    }
   };
 
   const handleAssign = (type: string, item: string) => {
@@ -290,6 +380,71 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
           </TouchableOpacity>
         </View>
 
+        {/* Tanita & Klinik Analiz Raporları (PDF Vault) */}
+        <View style={[styles.financeCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: radius.card }]}>
+          <View style={[styles.financeHeader, { justifyContent: 'space-between' }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="document-text" size={20} color="#E53935" />
+              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0, marginLeft: 8 }]}>
+                Tanita & Klinik Raporlar
+              </Text>
+            </View>
+            <View style={[styles.miniCountBadge, { backgroundColor: 'rgba(229, 57, 53, 0.15)' }]}>
+              <Text style={{ color: '#E53935', fontSize: 12, fontWeight: '700' }}>
+                {tanitaReports.length} Rapor
+              </Text>
+            </View>
+          </View>
+
+          {tanitaReports.length > 0 ? (
+            <View style={styles.tanitaList}>
+              {tanitaReports.map((report) => (
+                <TouchableOpacity
+                  key={report.id}
+                  style={[styles.tanitaItem, { backgroundColor: colors.background, borderColor: colors.border }]}
+                  onPress={() => handleOpenReport(report)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.tanitaIconCol}>
+                    <View style={styles.pdfBadge}>
+                      <Ionicons name="document-attach" size={22} color="#E53935" />
+                    </View>
+                  </View>
+                  <View style={styles.tanitaInfoCol}>
+                    <View style={styles.tanitaHeaderRow}>
+                      <Text style={[styles.tanitaClinic, { color: colors.text }]} numberOfLines={1}>
+                        {report.clinic_name || 'Vücut Analizi'}
+                      </Text>
+                      <Text style={[styles.tanitaDate, { color: colors.textMuted }]}>{report.date}</Text>
+                    </View>
+                    <Text style={[styles.tanitaFileName, { color: colors.textMuted }]} numberOfLines={1}>
+                      {report.file_name} {report.file_size ? `• ${report.file_size}` : ''}
+                    </Text>
+                    {report.note ? (
+                      <Text style={[styles.tanitaNote, { color: colors.textMuted }]} numberOfLines={2}>
+                        💬 {report.note}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <Ionicons name="open-outline" size={18} color={colors.primary} style={{ marginLeft: 8 }} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            <Text style={{ color: colors.textMuted, fontSize: 13, marginBottom: 16 }}>
+              Kayıtlı Tanita veya klinik PDF raporu bulunmuyor.
+            </Text>
+          )}
+
+          <TouchableOpacity
+            style={[styles.financeBtn, { backgroundColor: '#E53935', borderRadius: radius.button, marginTop: 12 }]}
+            onPress={() => setTanitaModalVisible(true)}
+          >
+            <Ionicons name="cloud-upload" size={18} color="#FFF" style={{ marginRight: 6 }} />
+            <Text style={styles.financeBtnText}>Yeni PDF Raporu Yükle</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Existing Assignment Actions */}
         <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 4 }]}>Danışan İşlemleri</Text>
         <View style={styles.actionsContainer}>
@@ -419,6 +574,102 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
         </View>
       </Modal>
 
+      {/* Tanita Report Upload Modal */}
+      <Modal visible={tanitaModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, maxHeight: '90%' }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="document-text" size={22} color="#E53935" style={{ marginRight: 8 }} />
+                <Text style={[styles.modalTitle, { color: colors.text, marginBottom: 0 }]}>Tanita / Klinik Raporu Yükle</Text>
+              </View>
+              <TouchableOpacity onPress={() => setTanitaModalVisible(false)}>
+                <Ionicons name="close" size={24} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Document Picker Box */}
+              <Text style={[styles.fLabel, { color: colors.textMuted }]}>PDF Dosyası Seç</Text>
+              {selectedDocument ? (
+                <View style={[styles.selectedDocBox, { backgroundColor: colors.background, borderColor: '#4CAF50' }]}>
+                  <Ionicons name="checkmark-circle" size={24} color="#4CAF50" style={{ marginRight: 10 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.selectedDocName, { color: colors.text }]} numberOfLines={1}>{selectedDocument.name}</Text>
+                    <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+                      {selectedDocument.size ? `${(selectedDocument.size / (1024 * 1024)).toFixed(2)} MB` : 'PDF Belgesi'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={handlePickDocument} style={styles.changeDocBtn}>
+                    <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '600' }}>Değiştir</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.docPickerBtn, { backgroundColor: colors.background, borderColor: colors.border }]}
+                  onPress={handlePickDocument}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="cloud-upload-outline" size={32} color={colors.primary} style={{ marginBottom: 6 }} />
+                  <Text style={[styles.docPickerTitle, { color: colors.text }]}>Cihazdan PDF Dosyası Seç</Text>
+                  <Text style={[styles.docPickerSubtitle, { color: colors.textMuted }]}>Tanita, InBody veya tahlil çıktısı (.pdf)</Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Date Input */}
+              <View style={{ marginTop: 16 }}>
+                <Text style={[styles.fLabel, { color: colors.textMuted }]}>Analiz Tarihi (YYYY-AA-GG)</Text>
+                <TextInput
+                  style={[styles.customInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, borderRadius: radius.button }]}
+                  placeholder="2026-09-29"
+                  placeholderTextColor={colors.textMuted}
+                  value={tanitaForm.date}
+                  onChangeText={t => setTanitaForm({ ...tanitaForm, date: t })}
+                />
+              </View>
+
+              {/* Clinic / Machine Name */}
+              <View style={{ marginTop: 12 }}>
+                <Text style={[styles.fLabel, { color: colors.textMuted }]}>Klinik / Laboratuvar / Cihaz Adı</Text>
+                <TextInput
+                  style={[styles.customInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, borderRadius: radius.button }]}
+                  placeholder="Örn: Acıbadem Sports Tanita MC-780"
+                  placeholderTextColor={colors.textMuted}
+                  value={tanitaForm.clinic_name}
+                  onChangeText={t => setTanitaForm({ ...tanitaForm, clinic_name: t })}
+                />
+              </View>
+
+              {/* Trainer Notes */}
+              <View style={{ marginTop: 12, marginBottom: 20 }}>
+                <Text style={[styles.fLabel, { color: colors.textMuted }]}>Antrenör Klinik Değerlendirme Notu</Text>
+                <TextInput
+                  style={[styles.customInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, borderRadius: radius.button, height: 80, textAlignVertical: 'top' }]}
+                  placeholder="Örn: Visseral yağ seviyesi 4'e geriledi, kas kütlesi dengeli..."
+                  placeholderTextColor={colors.textMuted}
+                  multiline
+                  numberOfLines={3}
+                  value={tanitaForm.note}
+                  onChangeText={t => setTanitaForm({ ...tanitaForm, note: t })}
+                />
+              </View>
+
+              <TouchableOpacity
+                style={[styles.customSubmitBtn, { backgroundColor: '#E53935', borderRadius: radius.button }]}
+                onPress={handleSaveTanitaReport}
+                disabled={uploadingReport}
+              >
+                {uploadingReport ? (
+                  <ActivityIndicator color="#FFF" size="small" />
+                ) : (
+                  <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 16 }}>Raporu Arşive Kaydet</Text>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       {/* Workout Modal */}
       <Modal visible={workoutModalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
@@ -496,6 +747,25 @@ const styles = StyleSheet.create({
   miniBadge: { paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderRadius: 8, flexDirection: 'row', alignItems: 'baseline', gap: 4 },
   miniBadgeLabel: { fontSize: 11, fontWeight: '600' },
   miniBadgeValue: { fontSize: 13, fontWeight: '800' },
+
+  miniCountBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  tanitaList: { marginBottom: 8 },
+  tanitaItem: { flexDirection: 'row', alignItems: 'center', padding: 14, borderWidth: 1, borderRadius: 12, marginBottom: 10 },
+  tanitaIconCol: { marginRight: 12 },
+  pdfBadge: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(229, 57, 53, 0.15)', alignItems: 'center', justifyContent: 'center' },
+  tanitaInfoCol: { flex: 1 },
+  tanitaHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
+  tanitaClinic: { fontSize: 14, fontWeight: '700', flex: 1, marginRight: 8 },
+  tanitaDate: { fontSize: 12, fontWeight: '500' },
+  tanitaFileName: { fontSize: 12, marginBottom: 4 },
+  tanitaNote: { fontSize: 12, lineHeight: 16 },
+
+  docPickerBtn: { borderWidth: 1.5, borderStyle: 'dashed', padding: 20, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
+  docPickerTitle: { fontSize: 15, fontWeight: '700', marginBottom: 4 },
+  docPickerSubtitle: { fontSize: 12 },
+  selectedDocBox: { flexDirection: 'row', alignItems: 'center', padding: 14, borderWidth: 1.5, borderRadius: 12, marginTop: 6 },
+  selectedDocName: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
+  changeDocBtn: { paddingHorizontal: 12, paddingVertical: 6 },
 
   metricFormRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   metricFormInput: { flex: 1 },

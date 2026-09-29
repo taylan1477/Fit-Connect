@@ -60,6 +60,8 @@ export interface TanitaReport {
   date: string;
   file_name: string;
   file_url: string;
+  clinic_name?: string;
+  file_size?: string;
   note?: string;
   created_at?: string;
 }

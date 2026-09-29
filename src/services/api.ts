@@ -128,6 +128,45 @@ let mockMetrics: ClientMetric[] = [
   },
 ];
 
+let mockTanitaReports: TanitaReport[] = [
+  {
+    id: 'tanita-1',
+    client_id: '1',
+    trainer_id: 'trainer-1',
+    date: '2026-09-18',
+    file_name: 'John_Doe_Tanita_MC780_Eylul.pdf',
+    file_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    clinic_name: 'Acıbadem Sports Tanita MC-780',
+    file_size: '1.2 MB',
+    note: 'Visseral yağ seviyesi 6\'ya geriledi. Yağsız kas kütlesi +850g artış gösterdi. Su tutulumu dengeli.',
+    created_at: '2026-09-18T10:30:00Z',
+  },
+  {
+    id: 'tanita-2',
+    client_id: '1',
+    trainer_id: 'trainer-1',
+    date: '2026-08-15',
+    file_name: 'John_Doe_Tanita_Ilk_Analiz.pdf',
+    file_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    clinic_name: 'FitLife Klinik Laboratuvarı',
+    file_size: '980 KB',
+    note: 'Program başlangıcı segmental vücut analizi. Sağ-sol bacak kas dengesizliği %4 (düzeltici egzersizler yazıldı).',
+    created_at: '2026-08-15T09:15:00Z',
+  },
+  {
+    id: 'tanita-3',
+    client_id: '2',
+    trainer_id: 'trainer-1',
+    date: '2026-09-12',
+    file_name: 'Jane_Smith_InBody_770.pdf',
+    file_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    clinic_name: 'Medicana Spor Hekimliği',
+    file_size: '1.5 MB',
+    note: 'Hipertrofi dönemi ara kontrol. İskelet kası kütlesi 24.2 kg -> 25.1 kg.',
+    created_at: '2026-09-12T14:00:00Z',
+  },
+];
+
 export const api = {
   // Profiles
   async getProfile(id: string): Promise<UserProfile | null> {
@@ -368,7 +407,9 @@ export const api = {
   // Tanita Reports Vault
   async getTanitaReports(clientId: string): Promise<TanitaReport[]> {
     if (!isSupabaseConfigured) {
-      return [];
+      return mockTanitaReports
+        .filter(r => r.client_id === clientId)
+        .sort((a, b) => b.date.localeCompare(a.date));
     }
     const { data, error } = await supabase
       .from('tanita_reports')
@@ -381,11 +422,12 @@ export const api = {
 
   async addTanitaReport(report: Omit<TanitaReport, 'id' | 'created_at'>): Promise<TanitaReport> {
     if (!isSupabaseConfigured) {
-      const newRep = {
+      const newRep: TanitaReport = {
         id: 'tanita-' + Date.now(),
         created_at: new Date().toISOString(),
         ...report,
       };
+      mockTanitaReports.unshift(newRep);
       return newRep;
     }
     const { data, error } = await supabase
