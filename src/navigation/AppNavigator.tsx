@@ -1,7 +1,19 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Text, View, TouchableOpacity, StyleSheet, StatusBar, TextInput, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import {
+  Text,
+  View,
+  TouchableOpacity,
+  StyleSheet,
+  StatusBar,
+  TextInput,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  ActivityIndicator,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,15 +30,16 @@ import { DailyWorkoutScreen } from '../screens/DailyWorkoutScreen';
 import { DietTrackerScreen } from '../screens/DietTrackerScreen';
 import { ProgressGalleryScreen } from '../screens/ProgressGalleryScreen';
 
+import { ThemeProvider, useTheme } from '../context/ThemeContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
-
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const ClientTabNavigator = () => {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Tab.Navigator
@@ -40,8 +53,8 @@ const ClientTabNavigator = () => {
             else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
             return <Ionicons name={iconName} size={size} color={color} />;
           },
-          tabBarActiveTintColor: '#059669',
-          tabBarInactiveTintColor: isDark ? '#6B7280' : 'gray',
+          tabBarActiveTintColor: colors.primary,
+          tabBarInactiveTintColor: colors.textMuted,
           headerShown: false,
           tabBarStyle: {
             backgroundColor: colors.card,
@@ -51,7 +64,7 @@ const ClientTabNavigator = () => {
             height: 60 + insets.bottom,
             paddingBottom: insets.bottom + 5,
             paddingTop: 5,
-          }
+          },
         })}
       >
         <Tab.Screen name="Home" component={ClientDashboard} />
@@ -64,55 +77,145 @@ const ClientTabNavigator = () => {
   );
 };
 
-import { ThemeProvider, useTheme } from '../context/ThemeContext';
-
 const LoginScreen = ({ navigation }: any) => {
-  const [email, setEmail] = React.useState('trainer@example.com');
-  const [password, setPassword] = React.useState('password123');
-  const { isDark, toggleTheme, colors } = useTheme();
+  const [email, setEmail] = useState('trainer@example.com');
+  const [password, setPassword] = useState('password123');
+  const [loading, setLoading] = useState(false);
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const [fullName, setFullName] = useState('');
+  const [role, setRole] = useState<'trainer' | 'client'>('trainer');
 
-  const handleLogin = () => {
+  const { isDark, toggleTheme, colors, radius } = useTheme();
+
+  // Handle Supabase Authentication with graceful fallback for offline / mock testing
+  const handleAuth = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter both email and password.');
+      Alert.alert('Eksik Bilgi', 'Lütfen e-posta ve şifrenizi girin.');
       return;
     }
-    
-    // Pure Mock Login for Demo
-    if (email.toLowerCase().includes('trainer')) {
-      navigation.navigate('TrainerHub');
-    } else {
-      navigation.navigate('ClientHub');
+
+    setLoading(true);
+    try {
+      if (isRegisterMode) {
+        // Sign Up with Supabase
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName || email.split('@')[0],
+              role,
+            },
+          },
+        });
+
+        if (error) throw error;
+
+        Alert.alert('Kayıt Başarılı', 'Hesabınız oluşturuldu. Giriş yapabilirsiniz.');
+        setIsRegisterMode(false);
+      } else {
+        // Sign In with Supabase
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) {
+          // If network / project not configured or mock user, fallback to role-based routing
+          console.warn('Supabase Auth notice:', error.message);
+          if (email.toLowerCase().includes('client')) {
+            navigation.navigate('ClientHub');
+          } else {
+            navigation.navigate('TrainerHub');
+          }
+          return;
+        }
+
+        // Fetch user profile to determine role
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profile?.role === 'client') {
+          navigation.navigate('ClientHub');
+        } else {
+          navigation.navigate('TrainerHub');
+        }
+      }
+    } catch (err: any) {
+      Alert.alert('Giriş Bilgisi', err.message || 'Giriş yapılamadı.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={colors.background} />
-      
-      <TouchableOpacity 
-        style={{ position: 'absolute', top: 50, right: 20, zIndex: 10, padding: 10, backgroundColor: colors.card, borderRadius: 20 }}
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+
+      {/* Theme Toggle Button */}
+      <TouchableOpacity
+        style={[
+          styles.themeToggle,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
         onPress={toggleTheme}
       >
-        <Text style={{ fontSize: 16 }}>{isDark ? '☀️ Light' : '🌙 Dark'}</Text>
+        <Ionicons name={isDark ? 'sunny' : 'moon'} size={18} color={colors.primary} />
       </TouchableOpacity>
 
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
-          <View style={styles.headerContainer}>
-            <Text style={styles.logoIcon}>💪</Text>
-            <Text style={[styles.title, { color: colors.text }]}>PT-Connect</Text>
-            <Text style={[styles.subtitle, { color: colors.textMuted }]}>Sign in to your account</Text>
-          </View>
           
+          {/* Header & Logo */}
+          <View style={styles.headerContainer}>
+            <View style={[styles.logoBadge, { backgroundColor: colors.primaryGlow, borderColor: colors.primary }]}>
+              <Ionicons name="barbell" size={40} color={colors.primary} />
+            </View>
+            <Text style={[styles.title, { color: colors.text }]}>Fit-Connect</Text>
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+              PT-App Antrenör & Danışan Yönetim Platformu
+            </Text>
+          </View>
+
+          {/* Form */}
           <View style={styles.authContainer}>
+            {isRegisterMode && (
+              <View style={styles.inputContainer}>
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Ad Soyad</Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.inputBackground,
+                      color: colors.text,
+                      borderColor: colors.border,
+                      borderRadius: radius.button,
+                    },
+                  ]}
+                  placeholder="Ahmet Yılmaz"
+                  placeholderTextColor={colors.textMuted}
+                  value={fullName}
+                  onChangeText={setFullName}
+                />
+              </View>
+            )}
+
             <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: colors.text }]}>Email Address</Text>
-              <TextInput 
-                style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]} 
-                placeholder="trainer@example.com" 
+              <Text style={[styles.inputLabel, { color: colors.text }]}>E-Posta Adresi</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colors.inputBackground,
+                    color: colors.text,
+                    borderColor: colors.border,
+                    borderRadius: radius.button,
+                  },
+                ]}
+                placeholder="antrenor@fitconnect.com"
                 placeholderTextColor={colors.textMuted}
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -122,10 +225,18 @@ const LoginScreen = ({ navigation }: any) => {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: colors.text }]}>Password</Text>
-              <TextInput 
-                style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]} 
-                placeholder="••••••••" 
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Şifre</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colors.inputBackground,
+                    color: colors.text,
+                    borderColor: colors.border,
+                    borderRadius: radius.button,
+                  },
+                ]}
+                placeholder="••••••••"
                 placeholderTextColor={colors.textMuted}
                 secureTextEntry
                 value={password}
@@ -133,36 +244,112 @@ const LoginScreen = ({ navigation }: any) => {
               />
             </View>
 
-            <TouchableOpacity style={[styles.loginButton, { backgroundColor: isDark ? '#3B82F6' : '#111827' }]} onPress={handleLogin}>
-              <Text style={styles.loginButtonText}>Sign In</Text>
+            {/* Role Selector in Register Mode */}
+            {isRegisterMode && (
+              <View style={styles.roleContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.roleBtn,
+                    role === 'trainer' && { borderColor: colors.primary, backgroundColor: colors.primaryGlow },
+                    { borderColor: colors.border },
+                  ]}
+                  onPress={() => setRole('trainer')}
+                >
+                  <Text style={[styles.roleText, { color: role === 'trainer' ? colors.primary : colors.textMuted }]}>
+                    🏋️ Antrenör
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.roleBtn,
+                    role === 'client' && { borderColor: colors.primary, backgroundColor: colors.primaryGlow },
+                    { borderColor: colors.border },
+                  ]}
+                  onPress={() => setRole('client')}
+                >
+                  <Text style={[styles.roleText, { color: role === 'client' ? colors.primary : colors.textMuted }]}>
+                    🏃 Danışan
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Submit Button */}
+            <TouchableOpacity
+              style={[
+                styles.primaryButton,
+                { backgroundColor: colors.primary, borderRadius: radius.button },
+              ]}
+              onPress={handleAuth}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.primaryButtonText}>
+                  {isRegisterMode ? 'Hesap Oluştur' : 'Giriş Yap'}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            {/* Toggle Mode */}
+            <TouchableOpacity
+              style={styles.switchModeBtn}
+              onPress={() => setIsRegisterMode(!isRegisterMode)}
+            >
+              <Text style={[styles.switchModeText, { color: colors.textMuted }]}>
+                {isRegisterMode
+                  ? 'Zaten hesabınız var mı? '
+                  : 'Henüz hesabınız yok mu? '}
+                <Text style={{ color: colors.primary, fontWeight: '700' }}>
+                  {isRegisterMode ? 'Giriş Yap' : 'Kayıt Ol'}
+                </Text>
+              </Text>
             </TouchableOpacity>
           </View>
 
+          {/* Quick Demo Switcher */}
           <View style={styles.demoDivider}>
             <View style={[styles.demoLine, { backgroundColor: colors.border }]} />
-            <Text style={styles.demoText}>OR DEMO MODE</Text>
+            <Text style={[styles.demoText, { color: colors.textMuted }]}>HIZLI TEST MODU</Text>
             <View style={[styles.demoLine, { backgroundColor: colors.border }]} />
           </View>
 
           <View style={styles.cardsContainerFixed}>
-            <TouchableOpacity 
-              style={[styles.card, styles.trainerCard, { backgroundColor: colors.card, borderColor: colors.border }]} 
+            <TouchableOpacity
+              style={[
+                styles.card,
+                styles.trainerCard,
+                { backgroundColor: colors.card, borderColor: colors.border, borderRadius: radius.card },
+              ]}
               onPress={() => navigation.navigate('TrainerHub')}
               activeOpacity={0.8}
             >
-              <Text style={[styles.cardTitle, { color: colors.text }]}>Trainer Portal</Text>
+              <Ionicons name="fitness" size={24} color={colors.primary} style={{ marginBottom: 6 }} />
+              <Text style={[styles.cardTitle, { color: colors.text }]}>Antrenör Paneli</Text>
+              <Text style={[styles.cardDesc, { color: colors.textMuted }]}>Danışanlar, Kasa & Seanslar</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.card, styles.clientCard, { backgroundColor: colors.card, borderColor: colors.border }]} 
+            <TouchableOpacity
+              style={[
+                styles.card,
+                styles.clientCard,
+                { backgroundColor: colors.card, borderColor: colors.border, borderRadius: radius.card },
+              ]}
               onPress={() => navigation.navigate('ClientHub')}
               activeOpacity={0.8}
             >
-              <Text style={[styles.cardTitle, { color: colors.text }]}>Client Portal</Text>
+              <Ionicons name="qr-code" size={24} color={colors.success} style={{ marginBottom: 6 }} />
+              <Text style={[styles.cardTitle, { color: colors.text }]}>Danışan Paneli</Text>
+              <Text style={[styles.cardDesc, { color: colors.textMuted }]}>QR Seans, Antrenman & Diyet</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.footerText}>v1.0 (MVP) • Engineered by Jarvis Swarm</Text>
+          <Text style={[styles.footerText, { color: colors.textMuted }]}>
+            Fit-Connect v1.0.0 • PT-App Engine
+          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -170,19 +357,55 @@ const LoginScreen = ({ navigation }: any) => {
 };
 
 export const AppNavigator = () => {
+  const { colors, isDark } = useTheme();
+
   return (
     <ThemeProvider>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="Login">
+        <Stack.Navigator
+          initialRouteName="Login"
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: colors.card,
+            },
+            headerTintColor: colors.text,
+            headerTitleStyle: {
+              fontWeight: '700',
+            },
+            headerShadowVisible: false,
+          }}
+        >
           <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-          <Stack.Screen name="TrainerHub" component={TrainerDashboard} options={{ title: 'Trainer Hub', headerStyle: { backgroundColor: '#EFF6FF' }, headerShadowVisible: false }} />
-          <Stack.Screen name="ClientList" component={ClientListScreen} options={{ title: 'Client List' }} />
-          <Stack.Screen name="ClientDetail" component={ClientDetailScreen} options={{ title: 'Client Detail' }} />
-          
-          <Stack.Screen name="ClientHub" component={ClientTabNavigator} options={{ headerShown: false }} />
-          
-          <Stack.Screen name="QRGenerator" component={QRGeneratorScreen} options={{ title: 'Generate QR' }} />
-          <Stack.Screen name="QRScanner" component={QRScannerScreen} options={{ title: 'Scan QR' }} />
+          <Stack.Screen
+            name="TrainerHub"
+            component={TrainerDashboard}
+            options={{ title: 'Antrenör Paneli' }}
+          />
+          <Stack.Screen
+            name="ClientList"
+            component={ClientListScreen}
+            options={{ title: 'Danışanlarım' }}
+          />
+          <Stack.Screen
+            name="ClientDetail"
+            component={ClientDetailScreen}
+            options={{ title: 'Danışan Detayı' }}
+          />
+          <Stack.Screen
+            name="ClientHub"
+            component={ClientTabNavigator}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="QRGenerator"
+            component={QRGeneratorScreen}
+            options={{ title: 'Seans QR Üret' }}
+          />
+          <Stack.Screen
+            name="QRScanner"
+            component={QRScannerScreen}
+            options={{ title: 'Seans QR Oku' }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </ThemeProvider>
@@ -192,85 +415,50 @@ export const AppNavigator = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+  },
+  themeToggle: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
   },
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 40,
+    paddingTop: 30,
     paddingBottom: 40,
     justifyContent: 'center',
   },
   headerContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 32,
   },
-  logoIcon: {
-    fontSize: 64,
+  logoBadge: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
     marginBottom: 16,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '800',
-    color: '#111827',
-    marginBottom: 8,
     letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
-    fontWeight: '500',
-    paddingHorizontal: 20,
-  },
-  cardsContainerFixed: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginTop: 10,
-    marginBottom: 20,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    padding: 24,
-    borderRadius: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-  },
-  trainerCard: {
-    borderLeftWidth: 6,
-    borderLeftColor: '#3B82F6',
-  },
-  clientCard: {
-    borderLeftWidth: 6,
-    borderLeftColor: '#10B981',
-  },
-  cardEmoji: {
-    fontSize: 40,
-    marginBottom: 12,
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
     marginBottom: 6,
   },
-  cardDesc: {
+  subtitle: {
     fontSize: 14,
-    color: '#6B7280',
     textAlign: 'center',
-  },
-  footerText: {
-    textAlign: 'center',
-    color: '#9CA3AF',
-    fontSize: 13,
     fontWeight: '500',
+    paddingHorizontal: 16,
   },
   authContainer: {
     width: '100%',
@@ -280,48 +468,102 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   inputLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   input: {
-    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#111827',
+    paddingVertical: 13,
+    fontSize: 15,
   },
-  loginButton: {
-    backgroundColor: '#111827',
-    borderRadius: 12,
-    paddingVertical: 16,
+  roleContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  roleBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderRadius: 10,
+  },
+  roleText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  primaryButton: {
+    paddingVertical: 15,
     alignItems: 'center',
     marginTop: 8,
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  loginButtonText: {
+  primaryButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
   },
+  switchModeBtn: {
+    marginTop: 14,
+    alignItems: 'center',
+  },
+  switchModeText: {
+    fontSize: 13,
+  },
   demoDivider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 10,
+    marginVertical: 14,
   },
   demoLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E5E7EB',
   },
   demoText: {
-    marginHorizontal: 16,
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#9CA3AF',
+    marginHorizontal: 12,
+    fontSize: 11,
+    fontWeight: '700',
     letterSpacing: 1,
-  }
+  },
+  cardsContainerFixed: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 20,
+  },
+  card: {
+    flex: 1,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  trainerCard: {
+    borderTopWidth: 3,
+    borderTopColor: '#FF6B00',
+  },
+  clientCard: {
+    borderTopWidth: 3,
+    borderTopColor: '#4CAF50',
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  cardDesc: {
+    fontSize: 11,
+    textAlign: 'center',
+  },
+  footerText: {
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '500',
+  },
 });
