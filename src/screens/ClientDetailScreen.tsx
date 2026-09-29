@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, Modal, ScrollView, Tex
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { api } from '../services/api';
-import { Package } from '../types';
+import { Package, ClientMetric } from '../types';
 
 const WORKOUT_TYPES = [
   'Hipertrofi (Push/Pull/Legs)',
@@ -28,20 +28,35 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activePackage, setActivePackage] = useState<Package | null>(null);
+  const [latestMetric, setLatestMetric] = useState<ClientMetric | null>(null);
 
   const [workoutModalVisible, setWorkoutModalVisible] = useState(false);
   const [dietModalVisible, setDietModalVisible] = useState(false);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [metricModalVisible, setMetricModalVisible] = useState(false);
   
   const [customText, setCustomText] = useState('');
   const [paymentAmountStr, setPaymentAmountStr] = useState('');
 
+  // 9-Point Metric Form State
+  const [metricForm, setMetricForm] = useState({
+    weight: '', height: '', body_fat: '',
+    shoulder: '', chest: '', biceps: '',
+    waist: '', hips: '', thigh: '', calf: '', notes: ''
+  });
+
   const loadData = async () => {
     try {
-      const pkg = await api.getClientPackage(client.id);
+      const [pkg, metricsData] = await Promise.all([
+        api.getClientPackage(client.id),
+        api.getMetrics(client.id)
+      ]);
       setActivePackage(pkg);
+      if (metricsData && metricsData.length > 0) {
+        setLatestMetric(metricsData[0]); // newest is first
+      }
     } catch (error) {
-      console.warn('Error loading client package:', error);
+      console.warn('Error loading client detail data:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -111,6 +126,36 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
     );
   };
 
+  const handleAddMetric = async () => {
+    try {
+      setLoading(true);
+      const newMetric: Omit<ClientMetric, 'id'> = {
+        client_id: client.id,
+        date: new Date().toISOString().split('T')[0],
+        weight: Number(metricForm.weight) || 0,
+        height: Number(metricForm.height) || 0,
+        body_fat: Number(metricForm.body_fat) || 0,
+        shoulder: Number(metricForm.shoulder) || 0,
+        chest: Number(metricForm.chest) || 0,
+        biceps: Number(metricForm.biceps) || 0,
+        waist: Number(metricForm.waist) || 0,
+        hips: Number(metricForm.hips) || 0,
+        thigh: Number(metricForm.thigh) || 0,
+        calf: Number(metricForm.calf) || 0,
+        notes: metricForm.notes
+      };
+      
+      await api.addMetric(newMetric);
+      Alert.alert('Başarılı', 'Yeni ölçümler kaydedildi.');
+      setMetricModalVisible(false);
+      setMetricForm({ weight: '', height: '', body_fat: '', shoulder: '', chest: '', biceps: '', waist: '', hips: '', thigh: '', calf: '', notes: '' });
+      await loadData();
+    } catch (err: any) {
+      Alert.alert('Hata', err.message || 'Ölçüm kaydedilemedi.');
+      setLoading(false);
+    }
+  };
+
   const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(amount);
   };
@@ -127,6 +172,16 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
       </View>
     );
   }
+
+  const renderBadge = (label: string, value?: number, unit: string = '') => {
+    if (!value) return null;
+    return (
+      <View style={[styles.miniBadge, { backgroundColor: colors.background, borderColor: colors.border }]}>
+        <Text style={[styles.miniBadgeLabel, { color: colors.textMuted }]}>{label}</Text>
+        <Text style={[styles.miniBadgeValue, { color: colors.text }]}>{value} {unit}</Text>
+      </View>
+    );
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -198,8 +253,45 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
           </View>
         )}
 
+        {/* Son Ölçümler Card */}
+        <View style={[styles.financeCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: radius.card }]}>
+          <View style={[styles.financeHeader, { justifyContent: 'space-between' }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="body" size={20} color={colors.primary} />
+              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0, marginLeft: 8 }]}>Son Ölçümler</Text>
+            </View>
+            <TouchableOpacity onPress={() => navigation.navigate('ClientMetricsHistory', { client })}>
+              <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 13 }}>Geçmişi Gör</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {latestMetric ? (
+            <View style={styles.badgeContainer}>
+              {renderBadge('Kilo', latestMetric.weight, 'kg')}
+              {renderBadge('Yağ', latestMetric.body_fat, '%')}
+              {renderBadge('Göğüs', latestMetric.chest, 'cm')}
+              {renderBadge('Bel', latestMetric.waist, 'cm')}
+              {renderBadge('Omuz', latestMetric.shoulder, 'cm')}
+              {renderBadge('Kol', latestMetric.biceps, 'cm')}
+              {renderBadge('Kalça', latestMetric.hips, 'cm')}
+              {renderBadge('Bacak', latestMetric.thigh, 'cm')}
+              {renderBadge('Kalf', latestMetric.calf, 'cm')}
+            </View>
+          ) : (
+            <Text style={{ color: colors.textMuted, fontSize: 13, marginBottom: 16 }}>Henüz ölçüm girilmemiş.</Text>
+          )}
+
+          <TouchableOpacity 
+            style={[styles.financeBtn, { backgroundColor: colors.primary, borderRadius: radius.button }]}
+            onPress={() => setMetricModalVisible(true)}
+          >
+            <Ionicons name="add" size={18} color="#FFF" style={{ marginRight: 6 }} />
+            <Text style={styles.financeBtnText}>Yeni Ölçüm Gir</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Existing Assignment Actions */}
-        <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 16 }]}>Danışan İşlemleri</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 4 }]}>Danışan İşlemleri</Text>
         <View style={styles.actionsContainer}>
           <TouchableOpacity 
             style={[styles.actionButton, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: radius.card }]}
@@ -216,6 +308,7 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
             <Text style={[styles.actionButtonText, { color: colors.text }]}>Diyet Ata</Text>
           </TouchableOpacity>
         </View>
+        <View style={{ height: 40 }} />
       </ScrollView>
 
       {/* Collect Payment Modal */}
@@ -245,6 +338,83 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
             >
               <Text style={{color: '#FFF', fontWeight: 'bold', fontSize: 16}}>Ödemeyi Kaydet</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Add Metric 9-Point Modal */}
+      <Modal visible={metricModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, height: '90%' }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={[styles.modalTitle, { color: colors.text, marginBottom: 0 }]}>9 Bölge Ölçüm Gir</Text>
+              <TouchableOpacity onPress={() => setMetricModalVisible(false)}>
+                <Ionicons name="close" size={24} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.metricFormRow}>
+                <View style={styles.metricFormInput}>
+                  <Text style={[styles.fLabel, { color: colors.textMuted }]}>Kilo (kg)</Text>
+                  <TextInput style={[styles.customInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, borderRadius: radius.button }]} keyboardType="numeric" value={metricForm.weight} onChangeText={t => setMetricForm({...metricForm, weight: t})} />
+                </View>
+                <View style={styles.metricFormInput}>
+                  <Text style={[styles.fLabel, { color: colors.textMuted }]}>Boy (cm)</Text>
+                  <TextInput style={[styles.customInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, borderRadius: radius.button }]} keyboardType="numeric" value={metricForm.height} onChangeText={t => setMetricForm({...metricForm, height: t})} />
+                </View>
+              </View>
+
+              <View style={styles.metricFormRow}>
+                <View style={styles.metricFormInput}>
+                  <Text style={[styles.fLabel, { color: colors.textMuted }]}>Yağ Oranı (%)</Text>
+                  <TextInput style={[styles.customInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, borderRadius: radius.button }]} keyboardType="numeric" value={metricForm.body_fat} onChangeText={t => setMetricForm({...metricForm, body_fat: t})} />
+                </View>
+                <View style={styles.metricFormInput}>
+                  <Text style={[styles.fLabel, { color: colors.textMuted }]}>Omuz (cm)</Text>
+                  <TextInput style={[styles.customInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, borderRadius: radius.button }]} keyboardType="numeric" value={metricForm.shoulder} onChangeText={t => setMetricForm({...metricForm, shoulder: t})} />
+                </View>
+              </View>
+
+              <View style={styles.metricFormRow}>
+                <View style={styles.metricFormInput}>
+                  <Text style={[styles.fLabel, { color: colors.textMuted }]}>Göğüs (cm)</Text>
+                  <TextInput style={[styles.customInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, borderRadius: radius.button }]} keyboardType="numeric" value={metricForm.chest} onChangeText={t => setMetricForm({...metricForm, chest: t})} />
+                </View>
+                <View style={styles.metricFormInput}>
+                  <Text style={[styles.fLabel, { color: colors.textMuted }]}>Kol (cm)</Text>
+                  <TextInput style={[styles.customInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, borderRadius: radius.button }]} keyboardType="numeric" value={metricForm.biceps} onChangeText={t => setMetricForm({...metricForm, biceps: t})} />
+                </View>
+              </View>
+
+              <View style={styles.metricFormRow}>
+                <View style={styles.metricFormInput}>
+                  <Text style={[styles.fLabel, { color: colors.textMuted }]}>Bel (cm)</Text>
+                  <TextInput style={[styles.customInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, borderRadius: radius.button }]} keyboardType="numeric" value={metricForm.waist} onChangeText={t => setMetricForm({...metricForm, waist: t})} />
+                </View>
+                <View style={styles.metricFormInput}>
+                  <Text style={[styles.fLabel, { color: colors.textMuted }]}>Kalça (cm)</Text>
+                  <TextInput style={[styles.customInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, borderRadius: radius.button }]} keyboardType="numeric" value={metricForm.hips} onChangeText={t => setMetricForm({...metricForm, hips: t})} />
+                </View>
+              </View>
+
+              <View style={styles.metricFormRow}>
+                <View style={styles.metricFormInput}>
+                  <Text style={[styles.fLabel, { color: colors.textMuted }]}>Üst Bacak (cm)</Text>
+                  <TextInput style={[styles.customInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, borderRadius: radius.button }]} keyboardType="numeric" value={metricForm.thigh} onChangeText={t => setMetricForm({...metricForm, thigh: t})} />
+                </View>
+                <View style={styles.metricFormInput}>
+                  <Text style={[styles.fLabel, { color: colors.textMuted }]}>Kalf (cm)</Text>
+                  <TextInput style={[styles.customInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, borderRadius: radius.button }]} keyboardType="numeric" value={metricForm.calf} onChangeText={t => setMetricForm({...metricForm, calf: t})} />
+                </View>
+              </View>
+
+              <Text style={[styles.fLabel, { color: colors.textMuted }]}>Antrenör Notu (Opsiyonel)</Text>
+              <TextInput style={[styles.customInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, borderRadius: radius.button, height: 80 }]} multiline value={metricForm.notes} onChangeText={t => setMetricForm({...metricForm, notes: t})} />
+
+              <TouchableOpacity style={[styles.customSubmitBtn, { backgroundColor: colors.primary, borderRadius: radius.button, marginTop: 10, marginBottom: 40 }]} onPress={handleAddMetric}>
+                <Text style={{color: '#FFF', fontWeight: 'bold', fontSize: 16}}>Ölçümleri Kaydet</Text>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -304,7 +474,7 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  headerCard: { padding: 20, borderWidth: 1, marginBottom: 20 },
+  headerCard: { padding: 20, borderWidth: 1, marginBottom: 16 },
   clientName: { fontSize: 24, fontWeight: '800', marginBottom: 4 },
   clientGoal: { fontSize: 14, fontWeight: '500' },
   statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
@@ -312,7 +482,7 @@ const styles = StyleSheet.create({
   
   sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12 },
   
-  financeCard: { padding: 20, borderWidth: 1, marginBottom: 20 },
+  financeCard: { padding: 20, borderWidth: 1, marginBottom: 16 },
   financeHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   financeMetrics: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
   fMetric: { flex: 1, alignItems: 'center' },
@@ -322,6 +492,14 @@ const styles = StyleSheet.create({
   financeBtn: { flexDirection: 'row', paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
   financeBtnText: { color: '#FFF', fontWeight: '700', fontSize: 14 },
   
+  badgeContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  miniBadge: { paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderRadius: 8, flexDirection: 'row', alignItems: 'baseline', gap: 4 },
+  miniBadgeLabel: { fontSize: 11, fontWeight: '600' },
+  miniBadgeValue: { fontSize: 13, fontWeight: '800' },
+
+  metricFormRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+  metricFormInput: { flex: 1 },
+
   noPackageCard: { padding: 20, borderWidth: 1, alignItems: 'center', marginBottom: 20 },
 
   actionsContainer: { flexDirection: 'row', gap: 16 },
@@ -335,7 +513,7 @@ const styles = StyleSheet.create({
   modalOption: { paddingVertical: 16, borderBottomWidth: 1 },
   modalOptionText: { fontSize: 15, fontWeight: '500' },
   customLabel: { marginTop: 20, marginBottom: 8, fontSize: 13 },
-  customInput: { borderWidth: 1, padding: 14, marginBottom: 16 },
+  customInput: { borderWidth: 1, padding: 14, marginBottom: 4 },
   customSubmitBtn: { padding: 14, alignItems: 'center', marginBottom: 10 },
   closeModalBtn: { paddingVertical: 16, alignItems: 'center' },
   closeModalText: { color: '#EF4444', fontWeight: 'bold', fontSize: 16 }

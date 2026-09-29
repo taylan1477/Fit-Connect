@@ -29,6 +29,7 @@ import { MyMetricsScreen } from '../screens/MyMetricsScreen';
 import { DailyWorkoutScreen } from '../screens/DailyWorkoutScreen';
 import { DietTrackerScreen } from '../screens/DietTrackerScreen';
 import { ProgressGalleryScreen } from '../screens/ProgressGalleryScreen';
+import { ClientMetricsHistoryScreen } from '../screens/ClientMetricsHistoryScreen';
 
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -390,6 +391,11 @@ export const AppNavigator = () => {
             name="ClientDetail"
             component={ClientDetailScreen}
             options={{ title: 'Danışan Detayı' }}
+          />
+          <Stack.Screen
+            name="ClientMetricsHistory"
+            component={ClientMetricsHistoryScreen}
+            options={{ title: 'Ölçüm Geçmişi' }}
           />
           <Stack.Screen
             name="ClientHub"
