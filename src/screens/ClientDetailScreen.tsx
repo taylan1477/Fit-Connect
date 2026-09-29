@@ -1,89 +1,273 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Modal, ScrollView, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Modal, ScrollView, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../context/ThemeContext';
+import { api } from '../services/api';
+import { Package } from '../types';
 
 const WORKOUT_TYPES = [
-  'Hypertrophy (Push/Pull/Legs)',
-  'Strength (5x5 Powerlifting)',
-  'Endurance (HIIT & Cardio)',
-  'Mobility & Yoga',
-  'Fat Loss Circuit'
+  'Hipertrofi (Push/Pull/Legs)',
+  'Güç (5x5 Powerlifting)',
+  'Dayanıklılık (HIIT & Cardio)',
+  'Mobilite & Yoga',
+  'Definisyon (Yağ Yakım)'
 ];
 
 const DIET_TYPES = [
-  'High Protein / Low Carb',
-  'Ketogenic',
-  'Intermittent Fasting (16:8)',
-  'Balanced Macros (Zone)',
-  'Vegan / Plant-Based'
+  'Yüksek Protein / Düşük Karb',
+  'Ketojenik Diyet',
+  'Aralıklı Oruç (IF 16:8)',
+  'Dengeli Makro (Zone)',
+  'Vegan / Bitkisel Tabanlı'
 ];
 
 export const ClientDetailScreen = ({ route, navigation }: any) => {
   const { client } = route.params;
+  const { colors, radius, getStatusColor } = useTheme();
+
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [activePackage, setActivePackage] = useState<Package | null>(null);
 
   const [workoutModalVisible, setWorkoutModalVisible] = useState(false);
   const [dietModalVisible, setDietModalVisible] = useState(false);
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  
   const [customText, setCustomText] = useState('');
+  const [paymentAmountStr, setPaymentAmountStr] = useState('');
+
+  const loadData = async () => {
+    try {
+      const pkg = await api.getClientPackage(client.id);
+      setActivePackage(pkg);
+    } catch (error) {
+      console.warn('Error loading client package:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
 
   const handleAssign = (type: string, item: string) => {
-    Alert.alert('Success', `${type} assigned: ${item}`);
+    Alert.alert('Başarılı', `${type} atandı: ${item}`);
     setWorkoutModalVisible(false);
     setDietModalVisible(false);
     setCustomText('');
   };
 
+  const handleCollectPayment = async () => {
+    if (!activePackage) return;
+    const amount = Number(paymentAmountStr);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert('Hata', 'Lütfen geçerli bir tutar giriniz.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await api.collectPayment(activePackage.id, amount, activePackage.paid_amount);
+      Alert.alert('Başarılı', `${formatMoney(amount)} tahsil edildi.`);
+      setPaymentModalVisible(false);
+      setPaymentAmountStr('');
+      await loadData();
+    } catch (err: any) {
+      Alert.alert('Hata', err.message || 'Tahsilat başarısız.');
+      setLoading(false);
+    }
+  };
+
+  const handleRenewPackage = () => {
+    if (!activePackage) return;
+    Alert.alert(
+      'Paket Yenile',
+      'Danışanın paketine +20 Ders ve 15.000 ₺ ücret eklenecektir. Onaylıyor musunuz?',
+      [
+        { text: 'İptal', style: 'cancel' },
+        { 
+          text: 'Yenile', 
+          style: 'default',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await api.renewPackage(activePackage.id, 20, 15000);
+              Alert.alert('Başarılı', 'Paket yenilendi (+20 Ders eklendi).');
+              await loadData();
+            } catch (err: any) {
+              Alert.alert('Hata', err.message || 'Yenileme başarısız.');
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const formatMoney = (amount: number) => {
+    return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(amount);
+  };
+
+  const packagePrice = activePackage ? Number(activePackage.package_price) : 0;
+  const paidAmount = activePackage ? Number(activePackage.paid_amount) : 0;
+  const debt = packagePrice - paidAmount > 0 ? packagePrice - paidAmount : 0;
+  const statusInfo = getStatusColor(activePackage?.remaining_sessions || 0);
+
+  if (loading && !refreshing && !activePackage) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.clientName}>{client.name}</Text>
-        <Text style={styles.clientGoal}>Primary Goal: {client.goal}</Text>
-      </View>
-
-      <View style={styles.metricsContainer}>
-        <Text style={styles.sectionTitle}>Recent Metrics</Text>
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>Weight</Text>
-          <Text style={styles.metricValue}>75 kg</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView 
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        contentContainerStyle={{ padding: 20 }}
+      >
+        {/* Header Profile Info */}
+        <View style={[styles.headerCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: radius.card }]}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View>
+              <Text style={[styles.clientName, { color: colors.text }]}>{client.full_name || client.name}</Text>
+              <Text style={[styles.clientGoal, { color: colors.textMuted }]}>{client.email}</Text>
+            </View>
+            {activePackage && (
+              <View style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}>
+                <Text style={[styles.statusText, { color: statusInfo.color }]}>
+                  {activePackage.remaining_sessions} Ders {statusInfo.label}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>Body Fat</Text>
-          <Text style={styles.metricValue}>18%</Text>
-        </View>
-      </View>
 
-      <View style={styles.actionsContainer}>
-        <TouchableOpacity 
-          style={[styles.actionButton, { backgroundColor: '#3B82F6' }]}
-          onPress={() => setWorkoutModalVisible(true)}
-        >
-          <Text style={styles.actionButtonText}>Assign Workout</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.actionButton, { backgroundColor: '#10B981' }]}
-          onPress={() => setDietModalVisible(true)}
-        >
-          <Text style={styles.actionButtonText}>Assign Diet</Text>
-        </TouchableOpacity>
-      </View>
+        {/* Financial Status Card */}
+        {activePackage ? (
+          <View style={[styles.financeCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: radius.card }]}>
+            <View style={styles.financeHeader}>
+              <Ionicons name="wallet" size={20} color={colors.primary} />
+              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0, marginLeft: 8 }]}>Finansal Durum</Text>
+            </View>
+
+            <View style={styles.financeMetrics}>
+              <View style={styles.fMetric}>
+                <Text style={[styles.fLabel, { color: colors.textMuted }]}>Paket Ücreti</Text>
+                <Text style={[styles.fValue, { color: colors.text }]}>{formatMoney(packagePrice)}</Text>
+              </View>
+              <View style={styles.fMetric}>
+                <Text style={[styles.fLabel, { color: colors.textMuted }]}>Tahsil Edilen</Text>
+                <Text style={[styles.fValue, { color: colors.success }]}>{formatMoney(paidAmount)}</Text>
+              </View>
+              <View style={styles.fMetric}>
+                <Text style={[styles.fLabel, { color: colors.textMuted }]}>Kalan Borç</Text>
+                <Text style={[styles.fValue, { color: debt > 0 ? colors.danger : colors.text }]}>{formatMoney(debt)}</Text>
+              </View>
+            </View>
+
+            <View style={styles.financeActions}>
+              <TouchableOpacity 
+                style={[styles.financeBtn, { backgroundColor: colors.success, borderRadius: radius.button, flex: 2 }]}
+                onPress={() => setPaymentModalVisible(true)}
+              >
+                <Ionicons name="cash-outline" size={18} color="#FFF" style={{ marginRight: 6 }} />
+                <Text style={styles.financeBtnText}>Tahsilat Ekle</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.financeBtn, { backgroundColor: colors.primaryGlow, borderColor: colors.primary, borderWidth: 1, borderRadius: radius.button, flex: 1.5 }]}
+                onPress={handleRenewPackage}
+              >
+                <Ionicons name="add-circle-outline" size={18} color={colors.primary} style={{ marginRight: 6 }} />
+                <Text style={[styles.financeBtnText, { color: colors.primary }]}>+20 Yenile</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <View style={[styles.noPackageCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: radius.card }]}>
+            <Text style={{ color: colors.textMuted }}>Aktif paket bulunamadı.</Text>
+          </View>
+        )}
+
+        {/* Existing Assignment Actions */}
+        <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 16 }]}>Danışan İşlemleri</Text>
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity 
+            style={[styles.actionButton, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: radius.card }]}
+            onPress={() => setWorkoutModalVisible(true)}
+          >
+            <Ionicons name="barbell" size={24} color={colors.primary} style={{ marginBottom: 8 }} />
+            <Text style={[styles.actionButtonText, { color: colors.text }]}>Antrenman Ata</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.actionButton, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: radius.card }]}
+            onPress={() => setDietModalVisible(true)}
+          >
+            <Ionicons name="restaurant" size={24} color={colors.primary} style={{ marginBottom: 8 }} />
+            <Text style={[styles.actionButtonText, { color: colors.text }]}>Diyet Ata</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      {/* Collect Payment Modal */}
+      <Modal visible={paymentModalVisible} animationType="fade" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={[styles.modalTitle, { color: colors.text, marginBottom: 0 }]}>Tahsilat Ekle</Text>
+              <TouchableOpacity onPress={() => setPaymentModalVisible(false)}>
+                <Ionicons name="close" size={24} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+            <Text style={[styles.fLabel, { color: colors.textMuted, marginBottom: 8 }]}>Kalan Borç: <Text style={{ color: colors.danger, fontWeight: '700' }}>{formatMoney(debt)}</Text></Text>
+            
+            <TextInput 
+              style={[styles.customInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, borderRadius: radius.button, fontSize: 18, fontWeight: '600' }]} 
+              placeholder="Örn: 5000" 
+              placeholderTextColor={colors.textMuted}
+              keyboardType="numeric"
+              value={paymentAmountStr} 
+              onChangeText={setPaymentAmountStr} 
+            />
+            
+            <TouchableOpacity 
+              style={[styles.customSubmitBtn, { backgroundColor: colors.success, borderRadius: radius.button }]} 
+              onPress={handleCollectPayment}
+            >
+              <Text style={{color: '#FFF', fontWeight: 'bold', fontSize: 16}}>Ödemeyi Kaydet</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Workout Modal */}
       <Modal visible={workoutModalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Assign Workout Program</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.card, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Antrenman Şablonu Ata</Text>
             <ScrollView>
               {WORKOUT_TYPES.map(w => (
-                <TouchableOpacity key={w} style={styles.modalOption} onPress={() => handleAssign('Workout', w)}>
-                  <Text style={styles.modalOptionText}>{w}</Text>
+                <TouchableOpacity key={w} style={[styles.modalOption, { borderBottomColor: colors.border }]} onPress={() => handleAssign('Antrenman', w)}>
+                  <Text style={[styles.modalOptionText, { color: colors.text }]}>{w}</Text>
                 </TouchableOpacity>
               ))}
-              <Text style={styles.customLabel}>Or enter custom workout:</Text>
-              <TextInput style={styles.customInput} placeholder="Custom workout..." value={customText} onChangeText={setCustomText} />
-              <TouchableOpacity style={styles.customSubmitBtn} onPress={() => handleAssign('Workout', customText || 'Custom Workout')}>
-                <Text style={{color: '#FFF', fontWeight: 'bold'}}>Assign Custom</Text>
+              <Text style={[styles.customLabel, { color: colors.textMuted }]}>Veya özel isim girin:</Text>
+              <TextInput style={[styles.customInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, borderRadius: radius.button }]} placeholder="Özel antrenman..." placeholderTextColor={colors.textMuted} value={customText} onChangeText={setCustomText} />
+              <TouchableOpacity style={[styles.customSubmitBtn, { backgroundColor: colors.primary, borderRadius: radius.button }]} onPress={() => handleAssign('Antrenman', customText || 'Özel Antrenman')}>
+                <Text style={{color: '#FFF', fontWeight: 'bold'}}>Kaydet</Text>
               </TouchableOpacity>
             </ScrollView>
             <TouchableOpacity style={styles.closeModalBtn} onPress={() => setWorkoutModalVisible(false)}>
-              <Text style={styles.closeModalText}>Cancel</Text>
+              <Text style={styles.closeModalText}>İptal</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -92,22 +276,22 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
       {/* Diet Modal */}
       <Modal visible={dietModalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Assign Diet Plan</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.card, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Beslenme Şablonu Ata</Text>
             <ScrollView>
               {DIET_TYPES.map(d => (
-                <TouchableOpacity key={d} style={styles.modalOption} onPress={() => handleAssign('Diet', d)}>
-                  <Text style={styles.modalOptionText}>{d}</Text>
+                <TouchableOpacity key={d} style={[styles.modalOption, { borderBottomColor: colors.border }]} onPress={() => handleAssign('Beslenme', d)}>
+                  <Text style={[styles.modalOptionText, { color: colors.text }]}>{d}</Text>
                 </TouchableOpacity>
               ))}
-              <Text style={styles.customLabel}>Or enter custom diet:</Text>
-              <TextInput style={styles.customInput} placeholder="Custom diet..." value={customText} onChangeText={setCustomText} />
-              <TouchableOpacity style={[styles.customSubmitBtn, { backgroundColor: '#10B981' }]} onPress={() => handleAssign('Diet', customText || 'Custom Diet')}>
-                <Text style={{color: '#FFF', fontWeight: 'bold'}}>Assign Custom</Text>
+              <Text style={[styles.customLabel, { color: colors.textMuted }]}>Veya özel isim girin:</Text>
+              <TextInput style={[styles.customInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, borderRadius: radius.button }]} placeholder="Özel diyet..." placeholderTextColor={colors.textMuted} value={customText} onChangeText={setCustomText} />
+              <TouchableOpacity style={[styles.customSubmitBtn, { backgroundColor: colors.primary, borderRadius: radius.button }]} onPress={() => handleAssign('Beslenme', customText || 'Özel Diyet')}>
+                <Text style={{color: '#FFF', fontWeight: 'bold'}}>Kaydet</Text>
               </TouchableOpacity>
             </ScrollView>
             <TouchableOpacity style={styles.closeModalBtn} onPress={() => setDietModalVisible(false)}>
-              <Text style={styles.closeModalText}>Cancel</Text>
+              <Text style={styles.closeModalText}>İptal</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -118,28 +302,41 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB', padding: 20 },
-  header: { backgroundColor: '#FFFFFF', padding: 24, borderRadius: 16, marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 3 },
-  clientName: { fontSize: 28, fontWeight: 'bold', color: '#111827', marginBottom: 8 },
-  clientGoal: { fontSize: 16, color: '#4B5563' },
-  sectionTitle: { fontSize: 20, fontWeight: '600', color: '#1F2937', marginBottom: 16 },
-  metricsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 32 },
-  metricCard: { flex: 1, backgroundColor: '#FFFFFF', padding: 20, borderRadius: 16, marginHorizontal: 8, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 3 },
-  metricLabel: { fontSize: 14, color: '#6B7280', marginBottom: 8 },
-  metricValue: { fontSize: 24, fontWeight: 'bold', color: '#111827' },
-  actionsContainer: { gap: 16 },
-  actionButton: { paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
-  actionButtonText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 16 },
+  container: { flex: 1 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  headerCard: { padding: 20, borderWidth: 1, marginBottom: 20 },
+  clientName: { fontSize: 24, fontWeight: '800', marginBottom: 4 },
+  clientGoal: { fontSize: 14, fontWeight: '500' },
+  statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  statusText: { fontSize: 12, fontWeight: '700' },
+  
+  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12 },
+  
+  financeCard: { padding: 20, borderWidth: 1, marginBottom: 20 },
+  financeHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  financeMetrics: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
+  fMetric: { flex: 1, alignItems: 'center' },
+  fLabel: { fontSize: 12, fontWeight: '500', marginBottom: 6 },
+  fValue: { fontSize: 16, fontWeight: '700' },
+  financeActions: { flexDirection: 'row', gap: 12 },
+  financeBtn: { flexDirection: 'row', paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
+  financeBtnText: { color: '#FFF', fontWeight: '700', fontSize: 14 },
+  
+  noPackageCard: { padding: 20, borderWidth: 1, alignItems: 'center', marginBottom: 20 },
+
+  actionsContainer: { flexDirection: 'row', gap: 16 },
+  actionButton: { flex: 1, paddingVertical: 24, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  actionButtonText: { fontWeight: '600', fontSize: 14 },
   
   // Modal Styles
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '80%' },
-  modalTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, color: '#1F2937' },
-  modalOption: { paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  modalOptionText: { fontSize: 16, color: '#4B5563' },
-  customLabel: { marginTop: 20, marginBottom: 8, fontSize: 14, color: '#6B7280' },
-  customInput: { backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, padding: 12, marginBottom: 12 },
-  customSubmitBtn: { backgroundColor: '#3B82F6', padding: 12, borderRadius: 8, alignItems: 'center', marginBottom: 20 },
-  closeModalBtn: { paddingVertical: 16, alignItems: 'center', marginTop: 10 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  modalContent: { padding: 24, maxHeight: '85%' },
+  modalTitle: { fontSize: 20, fontWeight: '800', marginBottom: 16 },
+  modalOption: { paddingVertical: 16, borderBottomWidth: 1 },
+  modalOptionText: { fontSize: 15, fontWeight: '500' },
+  customLabel: { marginTop: 20, marginBottom: 8, fontSize: 13 },
+  customInput: { borderWidth: 1, padding: 14, marginBottom: 16 },
+  customSubmitBtn: { padding: 14, alignItems: 'center', marginBottom: 10 },
+  closeModalBtn: { paddingVertical: 16, alignItems: 'center' },
   closeModalText: { color: '#EF4444', fontWeight: 'bold', fontSize: 16 }
 });

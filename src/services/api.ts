@@ -57,6 +57,15 @@ export const api = {
     return data;
   },
 
+  async getTrainerPackages(trainerId: string): Promise<Package[]> {
+    const { data, error } = await supabase
+      .from('packages')
+      .select('*')
+      .eq('trainer_id', trainerId);
+    if (error) throw error;
+    return data || [];
+  },
+
   async collectPayment(packageId: string, amountToPay: number, currentPaid: number) {
     const newPaidAmount = Number(currentPaid) + Number(amountToPay);
     const today = new Date().toISOString().split('T')[0];
