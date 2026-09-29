@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
   Text,
@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../utils/supabase';
+import { supabase, isSupabaseConfigured } from '../utils/supabase';
 
 import { QRGeneratorScreen } from '../screens/QRGeneratorScreen';
 import { QRScannerScreen } from '../screens/QRScannerScreen';
@@ -45,6 +45,7 @@ const ClientTabNavigator = () => {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Tab.Navigator
         screenOptions={({ route }) => ({
+          sceneStyle: { backgroundColor: colors.background },
           tabBarIcon: ({ focused, color, size }) => {
             let iconName: any = 'home';
             if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
@@ -97,6 +98,16 @@ const LoginScreen = ({ navigation }: any) => {
 
     setLoading(true);
     try {
+      if (!isSupabaseConfigured) {
+        // Fast instant routing for local testing without Supabase DNS hangs
+        if (email.toLowerCase().includes('client') || role === 'client') {
+          navigation.navigate('ClientHub');
+        } else {
+          navigation.navigate('TrainerHub');
+        }
+        return;
+      }
+
       if (isRegisterMode) {
         // Sign Up with Supabase
         const { data, error } = await supabase.auth.signUp({
@@ -357,63 +368,88 @@ const LoginScreen = ({ navigation }: any) => {
   );
 };
 
-export const AppNavigator = () => {
+const MainStack = () => {
   const { colors, isDark } = useTheme();
 
+  const baseTheme = isDark ? DarkTheme : DefaultTheme;
+  const navigationTheme = {
+    ...baseTheme,
+    colors: {
+      ...baseTheme.colors,
+      primary: colors.primary,
+      background: colors.background,
+      card: colors.card,
+      text: colors.text,
+      border: colors.border,
+      notification: colors.primary,
+    },
+  };
+
+  return (
+    <NavigationContainer theme={navigationTheme}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.card} />
+      <Stack.Navigator
+        initialRouteName="Login"
+        screenOptions={{
+          contentStyle: {
+            backgroundColor: colors.background,
+          },
+          headerStyle: {
+            backgroundColor: colors.card,
+          },
+          headerTintColor: colors.text,
+          headerTitleStyle: {
+            fontWeight: '700',
+          },
+          headerShadowVisible: false,
+          animation: 'slide_from_right',
+        }}
+      >
+        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+        <Stack.Screen
+          name="TrainerHub"
+          component={TrainerDashboard}
+          options={{ title: 'Antrenör Paneli' }}
+        />
+        <Stack.Screen
+          name="ClientList"
+          component={ClientListScreen}
+          options={{ title: 'Danışanlarım' }}
+        />
+        <Stack.Screen
+          name="ClientDetail"
+          component={ClientDetailScreen}
+          options={{ title: 'Danışan Detayı' }}
+        />
+        <Stack.Screen
+          name="ClientMetricsHistory"
+          component={ClientMetricsHistoryScreen}
+          options={{ title: 'Ölçüm Geçmişi' }}
+        />
+        <Stack.Screen
+          name="ClientHub"
+          component={ClientTabNavigator}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="QRGenerator"
+          component={QRGeneratorScreen}
+          options={{ title: 'Seans QR Üret' }}
+        />
+        <Stack.Screen
+          name="QRScanner"
+          component={QRScannerScreen}
+          options={{ title: 'Seans QR Oku' }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+};
+
+export const AppNavigator = () => {
   return (
     <ThemeProvider>
-      <NavigationContainer>
-        <Stack.Navigator
-          initialRouteName="Login"
-          screenOptions={{
-            headerStyle: {
-              backgroundColor: colors.card,
-            },
-            headerTintColor: colors.text,
-            headerTitleStyle: {
-              fontWeight: '700',
-            },
-            headerShadowVisible: false,
-          }}
-        >
-          <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-          <Stack.Screen
-            name="TrainerHub"
-            component={TrainerDashboard}
-            options={{ title: 'Antrenör Paneli' }}
-          />
-          <Stack.Screen
-            name="ClientList"
-            component={ClientListScreen}
-            options={{ title: 'Danışanlarım' }}
-          />
-          <Stack.Screen
-            name="ClientDetail"
-            component={ClientDetailScreen}
-            options={{ title: 'Danışan Detayı' }}
-          />
-          <Stack.Screen
-            name="ClientMetricsHistory"
-            component={ClientMetricsHistoryScreen}
-            options={{ title: 'Ölçüm Geçmişi' }}
-          />
-          <Stack.Screen
-            name="ClientHub"
-            component={ClientTabNavigator}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="QRGenerator"
-            component={QRGeneratorScreen}
-            options={{ title: 'Seans QR Üret' }}
-          />
-          <Stack.Screen
-            name="QRScanner"
-            component={QRScannerScreen}
-            options={{ title: 'Seans QR Oku' }}
-          />
-        </Stack.Navigator>
-      </NavigationContainer>
+      <MainStack />
     </ThemeProvider>
   );
 };

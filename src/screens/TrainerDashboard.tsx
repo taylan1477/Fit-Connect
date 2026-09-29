@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../utils/supabase';
+import { supabase, isSupabaseConfigured } from '../utils/supabase';
 import { api } from '../services/api';
 import { Package } from '../types';
 import { useTheme } from '../context/ThemeContext';
@@ -18,13 +18,21 @@ export const TrainerDashboard = ({ navigation }: any) => {
 
   const fetchFinancials = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      
-      const profile = await api.getProfile(user.id);
-      if (profile) setTrainerName(profile.full_name);
+      let trainerId = 'trainer-1';
+      let name = 'Serhat Özkan';
 
-      const packages = await api.getTrainerPackages(user.id);
+      if (isSupabaseConfigured) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          trainerId = user.id;
+          const profile = await api.getProfile(user.id);
+          if (profile?.full_name) name = profile.full_name;
+        }
+      }
+
+      setTrainerName(name);
+
+      const packages = await api.getTrainerPackages(trainerId);
       
       let revenue = 0;
       let debt = 0;
