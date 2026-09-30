@@ -467,8 +467,18 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
       </ScrollView>
 
       {/* Collect Payment Modal */}
-      <Modal visible={paymentModalVisible} animationType="fade" transparent={true}>
+      <Modal
+        visible={paymentModalVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setPaymentModalVisible(false)}
+      >
         <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setPaymentModalVisible(false)}
+          />
           <View style={[styles.modalContent, { backgroundColor: colors.card, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet }]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <Text style={[styles.modalTitle, { color: colors.text, marginBottom: 0 }]}>Tahsilat Ekle</Text>
@@ -498,8 +508,18 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
       </Modal>
 
       {/* Add Metric 9-Point Modal */}
-      <Modal visible={metricModalVisible} animationType="slide" transparent={true}>
+      <Modal
+        visible={metricModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setMetricModalVisible(false)}
+      >
         <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setMetricModalVisible(false)}
+          />
           <View style={[styles.modalContent, { backgroundColor: colors.card, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, height: '90%' }]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <Text style={[styles.modalTitle, { color: colors.text, marginBottom: 0 }]}>9 Bölge Ölçüm Gir</Text>
@@ -575,8 +595,18 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
       </Modal>
 
       {/* Tanita Report Upload Modal */}
-      <Modal visible={tanitaModalVisible} animationType="slide" transparent={true}>
+      <Modal
+        visible={tanitaModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setTanitaModalVisible(false)}
+      >
         <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setTanitaModalVisible(false)}
+          />
           <View style={[styles.modalContent, { backgroundColor: colors.card, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, maxHeight: '90%' }]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -671,8 +701,18 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
       </Modal>
 
       {/* Workout Modal */}
-      <Modal visible={workoutModalVisible} animationType="slide" transparent={true}>
+      <Modal
+        visible={workoutModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setWorkoutModalVisible(false)}
+      >
         <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setWorkoutModalVisible(false)}
+          />
           <View style={[styles.modalContent, { backgroundColor: colors.card, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>Antrenman Şablonu Ata</Text>
             <ScrollView>
@@ -695,8 +735,18 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
       </Modal>
 
       {/* Diet Modal */}
-      <Modal visible={dietModalVisible} animationType="slide" transparent={true}>
+      <Modal
+        visible={dietModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setDietModalVisible(false)}
+      >
         <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setDietModalVisible(false)}
+          />
           <View style={[styles.modalContent, { backgroundColor: colors.card, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>Beslenme Şablonu Ata</Text>
             <ScrollView>
