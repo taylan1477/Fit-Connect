@@ -97,4 +97,29 @@
 ### 4. Validation
 - [x] TypeScript verification (`tsc --noEmit`).
 
+---
+
+## 🚀 Day 6: Live Workout Engine & Volume Tracking
+**Status:** Completed
+**Target Delivery:** Interactive set-by-set tracking with live stopwatch and total volume calculation (Formula: `sum(weight * reps)` for completed sets).
+
+### 1. Data Structure Updates
+- [x] Update `WorkoutExercise` type in `types/index.ts` to replace `sets`, `reps`, `weight_kg`, `is_completed` with a `setsData` array: `[{set_number, weight_kg, reps, is_completed}]`.
+- [x] Ensure `api.ts` maps summary template logic (`sets: 3, reps: 10`) into the JSON `setsData` array upon assignment.
+
+### 2. Client Interface (DailyWorkoutScreen)
+- [x] Rebuild `DailyWorkoutScreen.tsx` so each exercise is a card, and sets are rows in a table format inside the card.
+- [x] Add editable text inputs for `Weight (kg)` and `Reps` for each set row.
+- [x] Add individual `Completed` checkbox per set row.
+
+### 3. Live Volume Tracking & Stopwatch
+- [x] Implement live stopwatch hook using a fixed `start_time` and `Date.now()` differences.
+- [x] Calculate and display `Total Volume (kg)` badge reacting dynamically to checked sets (`weight * reps`).
+
+### 4. Saving State
+- [x] Create `api.updateWorkoutProgress` to batch update the workout, its completed sets, and volume.
+- [x] Call upon pressing "Complete Workout".
+- [ ] Call upon pressing "Complete Workout".
+
+ 
  

@@ -103,18 +103,27 @@ export interface Workout {
   created_at?: string;
 }
 
+export interface WorkoutExerciseSetData {
+  set_number: number;
+  weight_kg: number;
+  reps: number;
+  is_completed: boolean;
+  prev_weight_kg?: number;
+}
+
 export interface WorkoutExercise {
   id: string;
   workout_id: string;
   exercise_name: string;
   set_number?: number;
   sets?: number;
-  reps: number;
-  weight_kg: number;
+  reps?: number | string;
+  weight_kg?: number;
   prev_weight_kg?: number;
-  rest_time_sec: number;
-  is_completed: boolean;
+  rest_time_sec?: number;
+  is_completed?: boolean;
   order_index?: number;
+  setsData?: WorkoutExerciseSetData[];
 }
 
 // Beslenme Şablonları & Planı

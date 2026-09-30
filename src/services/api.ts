@@ -591,17 +591,29 @@ export const api = {
       if (!template) throw new Error('Template not found');
 
       const workoutId = 'w-' + Date.now();
-      const exercises: WorkoutExercise[] = (template.exercises || []).map((ex, idx) => ({
-        id: 'we-' + Date.now() + '-' + idx,
-        workout_id: workoutId,
-        exercise_name: ex.exercise_name,
-        sets: ex.default_sets,
-        reps: ex.default_reps,
-        weight_kg: 0,
-        rest_time_sec: ex.default_rest_sec,
-        is_completed: false,
-        order_index: ex.order_index,
-      }));
+      const exercises: WorkoutExercise[] = (template.exercises || []).map((ex, idx) => {
+        const setsCount = ex.default_sets || 3;
+        const repsCount = typeof ex.default_reps === 'number' ? ex.default_reps : parseInt(String(ex.default_reps || '10'), 10) || 10;
+        const setsData = Array.from({ length: setsCount }).map((_, i) => ({
+          set_number: i + 1,
+          weight_kg: 0,
+          reps: repsCount,
+          is_completed: false,
+        }));
+        
+        return {
+          id: 'we-' + Date.now() + '-' + idx,
+          workout_id: workoutId,
+          exercise_name: ex.exercise_name,
+          sets: ex.default_sets,
+          reps: ex.default_reps,
+          weight_kg: 0,
+          rest_time_sec: ex.default_rest_sec,
+          is_completed: false,
+          order_index: ex.order_index,
+          setsData,
+        };
+      });
 
       const newWorkout: Workout = {
         id: workoutId,
@@ -641,16 +653,28 @@ export const api = {
     if (wError) throw wError;
 
     if (template.exercises && template.exercises.length > 0) {
-      const weToInsert = template.exercises.map((ex: any) => ({
-        workout_id: workout.id,
-        exercise_name: ex.exercise_name,
-        sets: ex.default_sets,
-        reps: ex.default_reps,
-        weight_kg: 0,
-        rest_time_sec: ex.default_rest_sec,
-        order_index: ex.order_index,
-        is_completed: false,
-      }));
+      const weToInsert = template.exercises.map((ex: any) => {
+        const setsCount = ex.default_sets || 3;
+        const repsCount = typeof ex.default_reps === 'number' ? ex.default_reps : parseInt(String(ex.default_reps || '10'), 10) || 10;
+        const setsData = Array.from({ length: setsCount }).map((_, i) => ({
+          set_number: i + 1,
+          weight_kg: 0,
+          reps: repsCount,
+          is_completed: false,
+        }));
+        
+        return {
+          workout_id: workout.id,
+          exercise_name: ex.exercise_name,
+          sets: ex.default_sets,
+          reps: ex.default_reps,
+          weight_kg: 0,
+          rest_time_sec: ex.default_rest_sec,
+          order_index: ex.order_index,
+          is_completed: false,
+          setsData,
+        };
+      });
       const { error: weError } = await supabase
         .from('workout_exercises')
         .insert(weToInsert);
@@ -680,24 +704,33 @@ export const api = {
     return data || [];
   },
 
-  async markExerciseCompleted(exerciseId: string, isCompleted: boolean) {
+  async updateWorkoutProgress(workoutId: string, exercises: WorkoutExercise[], durationSec?: number) {
     if (!isSupabaseConfigured) {
-      for (const w of mockWorkouts) {
-        const ex = w.exercises?.find(e => e.id === exerciseId);
-        if (ex) {
-          ex.is_completed = isCompleted;
-          return ex;
-        }
+      const w = mockWorkouts.find(x => x.id === workoutId);
+      if (w) {
+        w.status = 'completed';
+        w.exercises = exercises;
       }
-      return null;
+      return w;
     }
-    const { data, error } = await supabase
-      .from('workout_exercises')
-      .update({ is_completed: isCompleted })
-      .eq('id', exerciseId)
+
+    // 1. Update each exercise setsData
+    for (const ex of exercises) {
+      const { error } = await supabase
+        .from('workout_exercises')
+        .update({ setsData: ex.setsData })
+        .eq('id', ex.id);
+      if (error) console.error("Error updating exercise sets:", error);
+    }
+
+    // 2. Mark workout as completed
+    const { data, error: wError } = await supabase
+      .from('workouts')
+      .update({ status: 'completed' })
+      .eq('id', workoutId)
       .select()
       .single();
-    if (error) throw error;
+    if (wError) throw wError;
     return data;
   },
 
