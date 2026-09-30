@@ -126,11 +126,12 @@ export const DailyWorkoutScreen = () => {
 
   if (!activeWorkout) {
     return (
-      <View style={[styles.mainContainer, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>Program Yok</Text>
-          <Text style={[styles.subtitle, { color: colors.textMuted }]}>Bugün için atanmış bir antrenman bulunmuyor.</Text>
+      <View style={[styles.mainContainer, { backgroundColor: colors.background, paddingTop: insets.top, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 }]}>
+        <View style={{ width: 120, height: 120, borderRadius: 60, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', justifyContent: 'center', alignItems: 'center', marginBottom: 24 }}>
+          <Ionicons name="cafe-outline" size={64} color={colors.primary} />
         </View>
+        <Text style={[styles.title, { color: colors.text, textAlign: 'center', marginBottom: 12 }]}>Dinlenme Günü</Text>
+        <Text style={[styles.subtitle, { color: colors.textMuted, textAlign: 'center', lineHeight: 24 }]}>Bugün için atanmış bir antrenman programınız bulunmuyor. Kaslarınızı dinlendirin ve beslenmenize dikkat edin!</Text>
       </View>
     );
   }
