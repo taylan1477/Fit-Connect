@@ -4,6 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getTodayDisplayDate } from '../utils/date';
 
 interface Meal {
   id: string;
@@ -37,7 +38,7 @@ export const DietTrackerScreen = () => {
   };
 
   const handleSaveMeal = () => {
-    if (!foodName) return Alert.alert('Missing Info', 'Please enter a food item name.');
+    if (!foodName) return Alert.alert('Eksik Bilgi', 'Lütfen yiyecek veya öğün adını girin.');
     const newMeal: Meal = {
       id: Date.now().toString(),
       name: foodName,
@@ -49,12 +50,12 @@ export const DietTrackerScreen = () => {
   };
 
   const handleCallItADay = () => {
-    const newDay = { id: `Day ${loggedDays.length + 1}`, meals: [...mealPool] };
+    const newDay = { id: `Gün ${loggedDays.length + 1}`, meals: [...mealPool] };
     setLoggedDays([newDay, ...loggedDays]);
     setMealPool([]);
   };
 
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const today = getTodayDisplayDate();
 
   return (
     <View style={[styles.mainContainer, { backgroundColor: colors.background }]}>
@@ -68,46 +69,46 @@ export const DietTrackerScreen = () => {
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           {/* Header */}
           <View style={styles.headerTextContainer}>
-            <Text style={styles.appTitle}>PT-Connect Pro</Text>
-            <Text style={styles.screenTitle}>Diet Tracker</Text>
-            <Text style={styles.dateText}>📅 My Day - {today}</Text>
+            <Text style={styles.appTitle}>Fit-Connect Pro</Text>
+            <Text style={styles.screenTitle}>Beslenme & Diyet Takibi</Text>
+            <Text style={styles.dateText}>📅 Bugün - {today}</Text>
           </View>
 
           {/* Add Meal Card */}
           <View style={[styles.card, { backgroundColor: colors.card }]}>
-            <Text style={[styles.cardTitle, { color: colors.text }]}>Add New Meal</Text>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>Yeni Öğün Ekle</Text>
             <View style={styles.inputRow}>
               <TouchableOpacity style={styles.imagePickerBox} onPress={pickImage}>
                 {imageUri ? <Image source={{ uri: imageUri }} style={styles.pickedImage} /> : (
-                  <><Text style={styles.cameraIcon}>📷</Text><Text style={styles.addPhotoText}>Add Photo</Text></>
+                  <><Text style={styles.cameraIcon}>📷</Text><Text style={styles.addPhotoText}>Fotoğraf Ekle</Text></>
                 )}
               </TouchableOpacity>
               
               <View style={styles.textInputsContainer}>
-                <TextInput style={[styles.input, { backgroundColor: isDark ? '#374151' : '#F9FAFB', borderColor: colors.border, color: colors.text }]} placeholder="Food Item Name" placeholderTextColor={colors.textMuted} value={foodName} onChangeText={setFoodName} />
-                <TextInput style={[styles.input, { backgroundColor: isDark ? '#374151' : '#F9FAFB', borderColor: colors.border, color: colors.text }]} placeholder="🔥 Calories (e.g. 350)" placeholderTextColor={colors.textMuted} keyboardType="numeric" value={calories} onChangeText={setCalories} />
+                <TextInput style={[styles.input, { backgroundColor: isDark ? '#374151' : '#F9FAFB', borderColor: colors.border, color: colors.text }]} placeholder="Yiyecek / Öğün Adı" placeholderTextColor={colors.textMuted} value={foodName} onChangeText={setFoodName} />
+                <TextInput style={[styles.input, { backgroundColor: isDark ? '#374151' : '#F9FAFB', borderColor: colors.border, color: colors.text }]} placeholder="🔥 Kalori (örn. 350)" placeholderTextColor={colors.textMuted} keyboardType="numeric" value={calories} onChangeText={setCalories} />
               </View>
             </View>
             <TouchableOpacity style={styles.saveMealBtn} onPress={handleSaveMeal}>
-              <Text style={styles.saveMealBtnText}>Save Meal</Text>
+              <Text style={styles.saveMealBtnText}>Öğünü Kaydet</Text>
             </TouchableOpacity>
           </View>
 
           {/* Meal Pool */}
           <View style={styles.poolSection}>
-            <Text style={styles.poolLabel}>TEMP MEAL POOL</Text>
+            <Text style={styles.poolLabel}>GÜNLÜK ÖĞÜN HAVUZU</Text>
             <View style={styles.poolHeaderRow}>
-              <Text style={[styles.poolTitle, { color: colors.text }]}>Saved Meals for Today</Text>
-              <Text style={styles.poolCount}>{mealPool.length} items</Text>
+              <Text style={[styles.poolTitle, { color: colors.text }]}>Bugün Kaydedilen Öğünler</Text>
+              <Text style={styles.poolCount}>{mealPool.length} öğün</Text>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.poolScroll}>
               {mealPool.length === 0 ? (
-                <View style={[styles.emptyPoolBox, { borderColor: colors.border, backgroundColor: isDark ? '#374151' : '#E5E7EB' }]}><Text style={styles.emptyPoolText}>No meals saved yet.</Text></View>
+                <View style={[styles.emptyPoolBox, { borderColor: colors.border, backgroundColor: isDark ? '#374151' : '#E5E7EB' }]}><Text style={styles.emptyPoolText}>Henüz kaydedilmiş öğün yok.</Text></View>
               ) : mealPool.map((meal, index) => (
                 <View key={meal.id} style={[styles.poolItemCard, { backgroundColor: colors.card }]}>
                   <Image source={{ uri: meal.uri as string }} style={styles.poolItemImage} />
                   <View style={styles.poolItemInfo}>
-                    <Text style={styles.poolItemSubtitle}>Meal {mealPool.length - index}</Text>
+                    <Text style={styles.poolItemSubtitle}>Öğün {mealPool.length - index}</Text>
                     <Text style={[styles.poolItemName, { color: colors.text }]} numberOfLines={1}>{meal.name}</Text>
                     <Text style={styles.poolItemCalories}>{meal.calories} kcal</Text>
                   </View>
@@ -119,12 +120,12 @@ export const DietTrackerScreen = () => {
           {/* History */}
           {loggedDays.length > 0 && (
             <View style={styles.historySection}>
-              <Text style={styles.historyLabel}>HISTORY</Text>
-              <Text style={[styles.poolTitle, { color: colors.text, marginBottom: 12 }]}>Logged Days</Text>
+              <Text style={styles.historyLabel}>GEÇMİŞ</Text>
+              <Text style={[styles.poolTitle, { color: colors.text, marginBottom: 12 }]}>Geçmiş Günler</Text>
               {loggedDays.map((day) => (
                 <View key={day.id} style={[styles.historyCard, { backgroundColor: colors.card }]}>
                   <Text style={[styles.historyDayTitle, { color: colors.text }]}>{day.id}</Text>
-                  <Text style={styles.historySubtitle}>{day.meals.length} Meals Logged</Text>
+                  <Text style={styles.historySubtitle}>{day.meals.length} Öğün Kaydedildi</Text>
                   <View style={styles.historyImagesRow}>
                     {day.meals.map((m, idx) => (
                       <Image key={idx} source={{ uri: m.uri as string }} style={[styles.historyThumbnail, { left: idx * -15, zIndex: 10 - idx, borderColor: colors.card }]} />
@@ -139,7 +140,7 @@ export const DietTrackerScreen = () => {
         {/* Bottom Button */}
         <View style={styles.bottomFixedArea}>
           <TouchableOpacity style={[styles.callItADayBtn, mealPool.length === 0 && styles.callItADayBtnDisabled]} disabled={mealPool.length === 0} onPress={handleCallItADay}>
-            <Text style={styles.callItADayText}>CALL IT A DAY!</Text>
+            <Text style={styles.callItADayText}>GÜNÜ TAMAMLA!</Text>
           </TouchableOpacity>
         </View>
       </View>

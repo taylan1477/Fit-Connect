@@ -18,6 +18,7 @@ import { useTheme } from '../context/ThemeContext';
 import { api } from '../services/api';
 import { supabase, isSupabaseConfigured } from '../utils/supabase';
 import { WorkoutTemplate, WorkoutTemplateExercise, UserProfile } from '../types';
+import { getTodayDisplayDate, toISODate } from '../utils/date';
 
 const FOCUS_OPTIONS = ['Hipertrofi', 'Bacak & Kalça', 'Sırt & Kol', 'Güç', 'Definisyon', 'Full Body'];
 
@@ -42,7 +43,7 @@ export const WorkoutTemplatesScreen = ({ navigation }: any) => {
   
   // Assign Form
   const [selectedClientId, setSelectedClientId] = useState('');
-  const [assignDate, setAssignDate] = useState(new Date().toISOString().split('T')[0]);
+  const [assignDate, setAssignDate] = useState(getTodayDisplayDate());
 
   useEffect(() => {
     loadData();
@@ -154,11 +155,12 @@ export const WorkoutTemplatesScreen = ({ navigation }: any) => {
     }
     try {
       setLoading(true);
-      await api.assignTemplateToClient(selectedTemplate.id, selectedClientId, assignDate);
+      await api.assignTemplateToClient(selectedTemplate.id, selectedClientId, toISODate(assignDate));
       Alert.alert('Başarılı', 'Şablon danışana başarıyla atandı.');
       setIsAssignModalVisible(false);
       setSelectedTemplate(null);
       setSelectedClientId('');
+      setAssignDate(getTodayDisplayDate());
     } catch (error) {
       Alert.alert('Hata', 'Şablon atanamadı.');
     } finally {
@@ -414,11 +416,13 @@ export const WorkoutTemplatesScreen = ({ navigation }: any) => {
                   ))}
                 </ScrollView>
 
-                <Text style={[styles.label, { color: colors.textMuted, marginTop: 15 }]}>Tarih (YYYY-MM-DD)</Text>
+                <Text style={[styles.label, { color: colors.textMuted, marginTop: 15 }]}>Tarih (GG-AA-YYYY)</Text>
                 <TextInput
                   style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: isDark ? '#333' : '#CCC', marginBottom: 20 }]}
                   value={assignDate}
                   onChangeText={setAssignDate}
+                  placeholder="GG-AA-YYYY"
+                  placeholderTextColor={colors.textMuted}
                 />
 
                 <TouchableOpacity 

@@ -11,6 +11,7 @@ import {
   Diet,
   NutritionTemplate,
 } from '../types';
+import { toISODate } from '../utils/date';
 
 // Mock in-memory state for offline / zero-latency local testing
 let mockProfiles: UserProfile[] = [
@@ -468,17 +469,21 @@ export const api = {
   },
 
   async addMetric(metric: Omit<ClientMetric, 'id'>): Promise<ClientMetric> {
+    const normalizedMetric = {
+      ...metric,
+      date: toISODate(metric.date),
+    };
     if (!isSupabaseConfigured) {
       const newM: ClientMetric = {
         id: 'm-' + Date.now(),
-        ...metric,
+        ...normalizedMetric,
       };
       mockMetrics.unshift(newM);
       return newM;
     }
     const { data, error } = await supabase
       .from('client_metrics')
-      .insert(metric)
+      .insert(normalizedMetric)
       .select()
       .single();
     if (error) throw error;
@@ -502,18 +507,22 @@ export const api = {
   },
 
   async addTanitaReport(report: Omit<TanitaReport, 'id' | 'created_at'>): Promise<TanitaReport> {
+    const normalizedReport = {
+      ...report,
+      date: toISODate(report.date),
+    };
     if (!isSupabaseConfigured) {
       const newRep: TanitaReport = {
         id: 'tanita-' + Date.now(),
         created_at: new Date().toISOString(),
-        ...report,
+        ...normalizedReport,
       };
       mockTanitaReports.unshift(newRep);
       return newRep;
     }
     const { data, error } = await supabase
       .from('tanita_reports')
-      .insert(report)
+      .insert(normalizedReport)
       .select()
       .single();
     if (error) throw error;
@@ -586,6 +595,7 @@ export const api = {
   },
 
   async assignTemplateToClient(templateId: string, clientId: string, date: string): Promise<Workout> {
+    const normalizedDate = toISODate(date);
     if (!isSupabaseConfigured) {
       const template = mockWorkoutTemplates.find(t => t.id === templateId);
       if (!template) throw new Error('Template not found');
@@ -621,7 +631,7 @@ export const api = {
         trainer_id: template.trainer_id,
         template_id: template.id,
         title: template.title,
-        date,
+        date: normalizedDate,
         status: 'pending',
         exercises,
         created_at: new Date().toISOString(),
@@ -645,7 +655,7 @@ export const api = {
         trainer_id: template.trainer_id,
         template_id: template.id,
         title: template.title,
-        date,
+        date: normalizedDate,
         status: 'pending',
       } as any)
       .select()

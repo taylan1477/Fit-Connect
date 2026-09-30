@@ -70,11 +70,11 @@ const ClientTabNavigator = () => {
           },
         })}
       >
-        <Tab.Screen name="Home" component={ClientDashboard} />
-        <Tab.Screen name="Workout" component={DailyWorkoutScreen} />
-        <Tab.Screen name="Diet" component={DietTrackerScreen} />
-        <Tab.Screen name="Analytics" component={ProgressGalleryScreen} />
-        <Tab.Screen name="Profile" component={MyMetricsScreen} />
+        <Tab.Screen name="Home" component={ClientDashboard} options={{ title: 'Ana Sayfa', tabBarLabel: 'Ana Sayfa' }} />
+        <Tab.Screen name="Workout" component={DailyWorkoutScreen} options={{ title: 'Antrenman', tabBarLabel: 'Antrenman' }} />
+        <Tab.Screen name="Diet" component={DietTrackerScreen} options={{ title: 'Diyet', tabBarLabel: 'Diyet' }} />
+        <Tab.Screen name="Analytics" component={ProgressGalleryScreen} options={{ title: 'İlerleme', tabBarLabel: 'İlerleme' }} />
+        <Tab.Screen name="Profile" component={MyMetricsScreen} options={{ title: 'Profil', tabBarLabel: 'Profil' }} />
       </Tab.Navigator>
     </View>
   );

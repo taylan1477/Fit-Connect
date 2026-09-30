@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert } fr
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { formatDisplayDate } from '../utils/date';
 
 const initialPhotos = [
   { id: '1', date: '2023-10-01', uri: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=500&q=60' },
@@ -30,9 +31,9 @@ export const ProgressGalleryScreen = () => {
     <View style={[styles.mainContainer, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }}>
         <View style={styles.headerRow}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Progress Gallery</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>İlerleme Galerisi</Text>
           <TouchableOpacity style={styles.addButton} onPress={pickImage}>
-            <Text style={styles.addButtonText}>+ Add Photo</Text>
+            <Text style={styles.addButtonText}>+ Fotoğraf Ekle</Text>
           </TouchableOpacity>
         </View>
         
@@ -40,7 +41,7 @@ export const ProgressGalleryScreen = () => {
           {photos.map(photo => (
             <View key={photo.id} style={[styles.photoCard, { backgroundColor: colors.card, shadowColor: isDark ? '#000' : '#000' }]}>
               <Image source={{ uri: photo.uri }} style={styles.image} />
-              <Text style={[styles.dateText, { color: colors.textMuted }]}>{photo.date}</Text>
+              <Text style={[styles.dateText, { color: colors.textMuted }]}>{formatDisplayDate(photo.date)}</Text>
             </View>
           ))}
         </View>

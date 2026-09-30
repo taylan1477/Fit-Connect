@@ -20,6 +20,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../services/api';
 import { TanitaReport } from '../types';
+import { formatDisplayDate } from '../utils/date';
 
 export const MyMetricsScreen = () => {
   const { colors, isDark } = useTheme();
@@ -78,14 +79,14 @@ export const MyMetricsScreen = () => {
         } else {
           Alert.alert(
             'Tanita Klinik Raporu',
-            `Klinik: ${report.clinic_name || 'Tanita Analizi'}\nTarih: ${report.date}\nDosya: ${report.file_name}\nNot: ${report.note || 'Özel not girilmemiş.'}`
+            `Klinik: ${report.clinic_name || 'Tanita Analizi'}\nTarih: ${formatDisplayDate(report.date)}\nDosya: ${report.file_name}\nNot: ${report.note || 'Özel not girilmemiş.'}`
           );
         }
       }
     } catch (err: any) {
       Alert.alert(
         'Tanita Klinik Raporu',
-        `Klinik: ${report.clinic_name || 'Tanita Analizi'}\nTarih: ${report.date}\nDosya: ${report.file_name}\nNot: ${report.note || 'Özel not girilmemiş.'}`
+        `Klinik: ${report.clinic_name || 'Tanita Analizi'}\nTarih: ${formatDisplayDate(report.date)}\nDosya: ${report.file_name}\nNot: ${report.note || 'Özel not girilmemiş.'}`
       );
     }
   };
@@ -167,7 +168,7 @@ export const MyMetricsScreen = () => {
                       <Text style={styles.pdfPillText}>PDF</Text>
                     </View>
                     <Text style={[styles.tanitaDate, { color: colors.textMuted }]}>
-                      📅 {report.date}
+                      📅 {formatDisplayDate(report.date)}
                     </Text>
                     {report.file_size ? (
                       <Text style={[styles.tanitaSize, { color: colors.textMuted }]}>
@@ -307,7 +308,7 @@ export const MyMetricsScreen = () => {
               onPress={() => setShowDatePicker(true)}
             >
               <Text style={{ fontSize: 15, color: colors.text }}>
-                {metrics.birthDate.toISOString().split('T')[0]}
+                {formatDisplayDate(metrics.birthDate)}
               </Text>
             </TouchableOpacity>
             {showDatePicker && (

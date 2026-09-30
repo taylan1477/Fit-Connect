@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { api } from '../services/api';
 import { ClientMetric } from '../types';
+import { formatDisplayDate } from '../utils/date';
 
 export const ClientMetricsHistoryScreen = ({ route }: any) => {
   const { client } = route.params;
@@ -36,7 +37,7 @@ export const ClientMetricsHistoryScreen = ({ route }: any) => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+    return formatDisplayDate(dateString);
   };
 
   // Render a single field row with change logic

@@ -7,6 +7,7 @@ import { api } from '../services/api';
 import { supabase, isSupabaseConfigured } from '../utils/supabase';
 import { Workout, WorkoutExercise, WorkoutExerciseSetData } from '../types';
 import { Ionicons } from '@expo/vector-icons';
+import { formatDisplayDate, toISODate } from '../utils/date';
 
 export const DailyWorkoutScreen = () => {
   const { colors, isDark, radius } = useTheme();
@@ -57,7 +58,7 @@ export const DailyWorkoutScreen = () => {
       setWorkouts(data);
       
       const today = new Date().toISOString().split('T')[0];
-      const todayW = data.find(w => w.date === today) || data[0];
+      const todayW = data.find(w => toISODate(w.date) === today) || data[0];
       if (todayW) {
         setActiveWorkout(todayW);
         if (todayW.status === 'completed') {
@@ -152,16 +153,11 @@ export const DailyWorkoutScreen = () => {
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
-    return `${m}m ${s}s`;
+    return `${m} dk ${s} sn`;
   };
 
   const formatDate = (dateStr: string) => {
-    if (!dateStr) return '';
-    const parts = dateStr.split('-');
-    if (parts.length === 3) {
-      return `${parts[2]}-${parts[1]}-${parts[0]}`;
-    }
-    return dateStr;
+    return formatDisplayDate(dateStr);
   };
 
   return (

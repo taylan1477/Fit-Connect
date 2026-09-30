@@ -3,11 +3,12 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-nati
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getTodayDisplayDate } from '../utils/date';
 
 export const ClientDashboard = ({ navigation }: any) => {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const today = getTodayDisplayDate();
 
   return (
     <View style={[styles.mainContainer, { backgroundColor: colors.background }]}>
@@ -24,25 +25,25 @@ export const ClientDashboard = ({ navigation }: any) => {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.headerTextContainer}>
-            <Text style={styles.appTitle}>PT-Connect Pro</Text>
-            <Text style={styles.screenTitle}>Home</Text>
+            <Text style={styles.appTitle}>Fit-Connect Pro</Text>
+            <Text style={styles.screenTitle}>Ana Sayfa</Text>
             <Text style={styles.dateText}>📅 {today}</Text>
           </View>
 
           <View style={[styles.card, { backgroundColor: colors.card, shadowColor: isDark ? '#000' : '#000' }]}>
-            <Text style={[styles.greeting, { color: colors.text }]}>Welcome back, Athlete! 🏃‍♂️</Text>
-            <Text style={[styles.summaryText, { color: colors.textMuted }]}>You have 1 workout and 3 meals planned for today. Keep up the great work!</Text>
+            <Text style={[styles.greeting, { color: colors.text }]}>Tekrar hoş geldin, Şampiyon! 🏃‍♂️</Text>
+            <Text style={[styles.summaryText, { color: colors.textMuted }]}>Bugün için planlanmış antrenman ve öğünlerin hazır. Hedeflerine kararlılıkla devam et!</Text>
           </View>
 
           <View style={[styles.actionCard, { backgroundColor: colors.card }]}>
-            <Text style={[styles.actionTitle, { color: colors.text }]}>Gym Check-in</Text>
-            <Text style={[styles.actionSubtitle, { color: colors.textMuted }]}>Ready for your session? Scan your trainer's QR code to deduct a session.</Text>
+            <Text style={[styles.actionTitle, { color: colors.text }]}>Salona Giriş & Seans Onayı</Text>
+            <Text style={[styles.actionSubtitle, { color: colors.textMuted }]}>Antrenmana hazır mısın? Seansını onaylamak ve paketinden düşmek için antrenörünün QR kodunu okut.</Text>
             
             <TouchableOpacity 
               style={styles.scanButton} 
               onPress={() => navigation.navigate('QRScanner')}
             >
-              <Text style={styles.scanButtonText}>📸 Scan Session QR</Text>
+              <Text style={styles.scanButtonText}>📸 Seans QR Kodu Tara</Text>
             </TouchableOpacity>
           </View>
 

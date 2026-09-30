@@ -7,6 +7,7 @@ import { useTheme } from '../context/ThemeContext';
 import { api } from '../services/api';
 import { Package, ClientMetric, TanitaReport, WorkoutTemplate, Workout } from '../types';
 import { supabase, isSupabaseConfigured } from '../utils/supabase';
+import { formatDisplayDate, getTodayDisplayDate, toISODate } from '../utils/date';
 
 
 
@@ -40,10 +41,10 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
   const [tanitaReports, setTanitaReports] = useState<TanitaReport[]>([]);
   const [workoutTemplates, setWorkoutTemplates] = useState<WorkoutTemplate[]>([]);
   const [clientWorkouts, setClientWorkouts] = useState<Workout[]>([]);
-  const [assignDate, setAssignDate] = useState(new Date().toISOString().split('T')[0]);
+  const [assignDate, setAssignDate] = useState(getTodayDisplayDate());
   const [selectedDocument, setSelectedDocument] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [tanitaForm, setTanitaForm] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: getTodayDisplayDate(),
     clinic_name: '',
     note: '',
   });
@@ -146,11 +147,12 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
 
     try {
       setUploadingReport(true);
+      const isoDate = toISODate(tanitaForm.date);
       const newReport: Omit<TanitaReport, 'id' | 'created_at'> = {
         client_id: client.id,
         trainer_id: 'trainer-1',
-        date: tanitaForm.date || new Date().toISOString().split('T')[0],
-        file_name: selectedDocument ? selectedDocument.name : `${client.full_name || client.name || 'Danisan'}_Tanita_Raporu_${tanitaForm.date}.pdf`,
+        date: isoDate,
+        file_name: selectedDocument ? selectedDocument.name : `${client.full_name || client.name || 'Danisan'}_Tanita_Raporu_${isoDate}.pdf`,
         file_url: selectedDocument ? selectedDocument.uri : 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
         clinic_name: tanitaForm.clinic_name || 'Klinik Vücut Analizi',
         file_size: selectedDocument?.size ? `${(selectedDocument.size / (1024 * 1024)).toFixed(1)} MB` : '1.1 MB',
@@ -161,7 +163,7 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
       Alert.alert('Başarılı 🎉', 'Tanita klinik raporu arşive eklendi.');
       setTanitaModalVisible(false);
       setSelectedDocument(null);
-      setTanitaForm({ date: new Date().toISOString().split('T')[0], clinic_name: '', note: '' });
+      setTanitaForm({ date: getTodayDisplayDate(), clinic_name: '', note: '' });
       await loadData();
     } catch (err: any) {
       Alert.alert('Hata', err.message || 'Rapor eklenemedi.');
@@ -259,12 +261,7 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
   };
 
   const formatDate = (dateStr: string) => {
-    if (!dateStr) return '';
-    const parts = dateStr.split('-');
-    if (parts.length === 3) {
-      return `${parts[2]}-${parts[1]}-${parts[0]}`;
-    }
-    return dateStr;
+    return formatDisplayDate(dateStr);
   };
 
   const handleSaveAsTemplate = async (workout: Workout) => {
@@ -722,10 +719,10 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
 
               {/* Date Input */}
               <View style={{ marginTop: 16 }}>
-                <Text style={[styles.fLabel, { color: colors.textMuted }]}>Analiz Tarihi (YYYY-AA-GG)</Text>
+                <Text style={[styles.fLabel, { color: colors.textMuted }]}>Analiz Tarihi (GG-AA-YYYY)</Text>
                 <TextInput
                   style={[styles.customInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, borderRadius: radius.button }]}
-                  placeholder="2026-09-29"
+                  placeholder="29-09-2026"
                   placeholderTextColor={colors.textMuted}
                   value={tanitaForm.date}
                   onChangeText={t => setTanitaForm({ ...tanitaForm, date: t })}
@@ -791,12 +788,12 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
             <Text style={[styles.modalTitle, { color: colors.text }]}>Antrenman Şablonu Ata</Text>
             
             <View style={{ marginBottom: 16 }}>
-              <Text style={{ color: colors.textMuted, marginBottom: 8, fontSize: 14 }}>Hangi Tarih İçin?</Text>
+              <Text style={{ color: colors.textMuted, marginBottom: 8, fontSize: 14 }}>Hangi Tarih İçin? (GG-AA-YYYY)</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
                 value={assignDate}
                 onChangeText={setAssignDate}
-                placeholder="YYYY-MM-DD"
+                placeholder="GG-AA-YYYY"
                 placeholderTextColor={colors.textMuted}
               />
             </View>
@@ -805,9 +802,10 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
               {workoutTemplates.length > 0 ? workoutTemplates.map(w => (
                 <TouchableOpacity key={w.id} style={[styles.modalOption, { borderBottomColor: colors.border }]} onPress={async () => {
                   try {
-                    await api.assignTemplateToClient(w.id, client.id, assignDate);
+                    await api.assignTemplateToClient(w.id, client.id, toISODate(assignDate));
                     Alert.alert('Başarılı', `${w.title} şablonu atandı.`);
                     setWorkoutModalVisible(false);
+                    setAssignDate(getTodayDisplayDate());
                     loadData(); // Refresh to show the assigned workout
                   } catch (e) {
                     Alert.alert('Hata', 'Şablon atanamadı.');
