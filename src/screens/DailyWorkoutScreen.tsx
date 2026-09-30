@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../services/api';
 import { supabase, isSupabaseConfigured } from '../utils/supabase';
 import { Workout, WorkoutExercise, WorkoutExerciseSetData } from '../types';
@@ -21,9 +22,11 @@ export const DailyWorkoutScreen = () => {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedSecs, setElapsedSecs] = useState<number>(0);
 
-  useEffect(() => {
-    loadWorkouts();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadWorkouts();
+    }, [])
+  );
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -152,6 +155,15 @@ export const DailyWorkoutScreen = () => {
     return `${m}m ${s}s`;
   };
 
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+    return dateStr;
+  };
+
   return (
     <View style={[styles.mainContainer, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       
@@ -179,7 +191,7 @@ export const DailyWorkoutScreen = () => {
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }}>
         <View style={styles.header}>
           <Text style={[styles.title, { color: colors.text }]}>{activeWorkout.title || "Bugünün Antrenmanı"}</Text>
-          <Text style={[styles.subtitle, { color: colors.textMuted }]}>{activeWorkout.date}</Text>
+          <Text style={[styles.subtitle, { color: colors.textMuted }]}>{formatDate(activeWorkout.date)}</Text>
         </View>
 
         {activeWorkout.exercises?.map((ex, exIndex) => (

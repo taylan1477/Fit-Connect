@@ -258,6 +258,15 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
     return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(amount);
   };
 
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+    return dateStr;
+  };
+
   const handleSaveAsTemplate = async (workout: Workout) => {
     try {
       setLoading(true);
@@ -447,7 +456,7 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
                       <Text style={[styles.tanitaClinic, { color: colors.text }]} numberOfLines={1}>
                         {report.clinic_name || 'Vücut Analizi'}
                       </Text>
-                      <Text style={[styles.tanitaDate, { color: colors.textMuted }]}>{report.date}</Text>
+                      <Text style={[styles.tanitaDate, { color: colors.textMuted }]}>{formatDate(report.date)}</Text>
                     </View>
                     <Text style={[styles.tanitaFileName, { color: colors.textMuted }]} numberOfLines={1}>
                       {report.file_name} {report.file_size ? `• ${report.file_size}` : ''}
@@ -494,7 +503,7 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
                   <View style={styles.tanitaInfoCol}>
                     <View style={styles.tanitaHeaderRow}>
                       <Text style={[styles.tanitaClinic, { color: colors.text }]} numberOfLines={1}>{w.title}</Text>
-                      <Text style={[styles.tanitaDate, { color: colors.textMuted }]}>{w.date}</Text>
+                      <Text style={[styles.tanitaDate, { color: colors.textMuted }]}>{formatDate(w.date)}</Text>
                     </View>
                     <Text style={[styles.tanitaFileName, { color: colors.textMuted }]} numberOfLines={1}>
                       {w.status === 'completed' ? 'Tamamlandı' : 'Bekliyor'}
