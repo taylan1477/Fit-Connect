@@ -40,6 +40,7 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
   const [tanitaReports, setTanitaReports] = useState<TanitaReport[]>([]);
   const [workoutTemplates, setWorkoutTemplates] = useState<WorkoutTemplate[]>([]);
   const [clientWorkouts, setClientWorkouts] = useState<Workout[]>([]);
+  const [assignDate, setAssignDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedDocument, setSelectedDocument] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [tanitaForm, setTanitaForm] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -476,6 +477,39 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
           </TouchableOpacity>
         </View>
 
+        {/* Atanmış Antrenmanlar */}
+        <View style={[styles.financeCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: radius.card }]}>
+          <View style={styles.financeHeader}>
+            <Ionicons name="barbell-outline" size={20} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0, marginLeft: 8 }]}>Atanmış Antrenmanlar</Text>
+          </View>
+          
+          {clientWorkouts.length > 0 ? (
+            <View style={styles.tanitaList}>
+              {clientWorkouts.slice(0, 3).map((w) => (
+                <View key={w.id} style={[styles.tanitaItem, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                  <View style={[styles.pdfBadge, { backgroundColor: w.status === 'completed' ? 'rgba(76, 175, 80, 0.15)' : 'rgba(255, 107, 0, 0.15)' }]}>
+                    <Ionicons name={w.status === 'completed' ? 'checkmark-circle' : 'time'} size={22} color={w.status === 'completed' ? '#4CAF50' : colors.primary} />
+                  </View>
+                  <View style={styles.tanitaInfoCol}>
+                    <View style={styles.tanitaHeaderRow}>
+                      <Text style={[styles.tanitaClinic, { color: colors.text }]} numberOfLines={1}>{w.title}</Text>
+                      <Text style={[styles.tanitaDate, { color: colors.textMuted }]}>{w.date}</Text>
+                    </View>
+                    <Text style={[styles.tanitaFileName, { color: colors.textMuted }]} numberOfLines={1}>
+                      {w.status === 'completed' ? 'Tamamlandı' : 'Bekliyor'}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={{ color: colors.textMuted, fontSize: 13, marginBottom: 16 }}>
+              Henüz atanmış bir antrenman bulunmuyor.
+            </Text>
+          )}
+        </View>
+
         {/* Existing Assignment Actions */}
         <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 4 }]}>Danışan İşlemleri</Text>
         <View style={styles.actionsContainer}>
@@ -746,13 +780,26 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
           />
           <View style={[styles.modalContent, { backgroundColor: colors.card, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, maxHeight: '80%' }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>Antrenman Şablonu Ata</Text>
+            
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ color: colors.textMuted, marginBottom: 8, fontSize: 14 }}>Hangi Tarih İçin?</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                value={assignDate}
+                onChangeText={setAssignDate}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={colors.textMuted}
+              />
+            </View>
+
             <ScrollView showsVerticalScrollIndicator={false}>
               {workoutTemplates.length > 0 ? workoutTemplates.map(w => (
                 <TouchableOpacity key={w.id} style={[styles.modalOption, { borderBottomColor: colors.border }]} onPress={async () => {
                   try {
-                    await api.assignTemplateToClient(w.id, client.id, new Date().toISOString().split('T')[0]);
+                    await api.assignTemplateToClient(w.id, client.id, assignDate);
                     Alert.alert('Başarılı', `${w.title} şablonu atandı.`);
                     setWorkoutModalVisible(false);
+                    loadData(); // Refresh to show the assigned workout
                   } catch (e) {
                     Alert.alert('Hata', 'Şablon atanamadı.');
                   }
@@ -869,6 +916,7 @@ const styles = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   modalContent: { padding: 24, maxHeight: '85%' },
   modalTitle: { fontSize: 20, fontWeight: '800', marginBottom: 16 },
+  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16 },
   modalOption: { paddingVertical: 16, borderBottomWidth: 1 },
   modalOptionText: { fontSize: 15, fontWeight: '500' },
   customLabel: { marginTop: 20, marginBottom: 8, fontSize: 13 },
