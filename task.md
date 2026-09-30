@@ -74,3 +74,27 @@
 - [x] Pull-to-refresh and empty state handling.
 - [x] Modern PT-App dark aesthetic styling with BMI calculation banner.
 
+---
+
+## 🚀 Day 5: Dynamic Workout Templates & Assignment
+**Status:** Completed
+**Target Delivery:** Trainer creates templates, assigns to clients, client completes them in app.
+
+### 1. Workout Templates Library
+- [x] Create `WorkoutTemplatesScreen.tsx` with dynamic category filters.
+- [x] Add New Template modal.
+- [x] Enable dynamic form to add multiple exercises to a template.
+
+### 2. Trainer Interface (ClientDetailScreen)
+- [x] Refactor assign workout modal to pull templates from `api.getWorkoutTemplates`.
+- [x] Add "Save as Template" button next to client's latest workout.
+
+### 3. Client Interface (DailyWorkoutScreen)
+- [x] Replace mock workout with `api.getWorkouts`.
+- [x] Allow client to interactively check off sets.
+- [x] Empty state for no workouts assigned.
+
+### 4. Validation
+- [x] TypeScript verification (`tsc --noEmit`).
+
+ 

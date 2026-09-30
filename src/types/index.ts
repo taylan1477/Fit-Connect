@@ -92,6 +92,7 @@ export interface Workout {
   id: string;
   client_id: string;
   trainer_id?: string;
+  template_id?: string;
   title?: string;
   date: string;
   duration_seconds?: number;

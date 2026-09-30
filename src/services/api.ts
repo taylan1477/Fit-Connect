@@ -6,6 +6,7 @@ import {
   Workout,
   WorkoutExercise,
   WorkoutTemplate,
+  WorkoutTemplateExercise,
   TanitaReport,
   Diet,
   NutritionTemplate,
@@ -166,6 +167,86 @@ let mockTanitaReports: TanitaReport[] = [
     created_at: '2026-09-12T14:00:00Z',
   },
 ];
+
+let mockWorkoutTemplates: WorkoutTemplate[] = [
+  {
+    id: 'tmpl-1',
+    trainer_id: 'trainer-1',
+    title: 'Göğüs & Ön Kol (Hipertrofi)',
+    target_focus: 'Hipertrofi',
+    description: 'Göğüs kaslarında maksimum hacim ve ön kol dolgunluğu için.',
+    exercises: [
+      { id: 'ex-1', template_id: 'tmpl-1', exercise_name: 'Bench Press', order_index: 1, default_sets: 4, default_reps: 10, default_rest_sec: 90 },
+      { id: 'ex-2', template_id: 'tmpl-1', exercise_name: 'Incline Dumbbell Press', order_index: 2, default_sets: 3, default_reps: 12, default_rest_sec: 60 },
+      { id: 'ex-3', template_id: 'tmpl-1', exercise_name: 'Dumbbell Fly', order_index: 3, default_sets: 3, default_reps: 15, default_rest_sec: 60 },
+      { id: 'ex-4', template_id: 'tmpl-1', exercise_name: 'Barbell Biceps Curl', order_index: 4, default_sets: 4, default_reps: 12, default_rest_sec: 60 },
+      { id: 'ex-5', template_id: 'tmpl-1', exercise_name: 'Hammer Curl', order_index: 5, default_sets: 3, default_reps: 15, default_rest_sec: 60 },
+    ],
+    created_at: '2026-09-01T10:00:00Z',
+  },
+  {
+    id: 'tmpl-2',
+    trainer_id: 'trainer-1',
+    title: 'Bacak & Kalça Odaklı (Alt Vücut)',
+    target_focus: 'Bacak & Kalça',
+    description: 'Alt vücut kuvveti ve hipertrofisi.',
+    exercises: [
+      { id: 'ex-6', template_id: 'tmpl-2', exercise_name: 'Barbell Back Squat', order_index: 1, default_sets: 4, default_reps: 8, default_rest_sec: 120 },
+      { id: 'ex-7', template_id: 'tmpl-2', exercise_name: 'Barbell Hip Thrust', order_index: 2, default_sets: 4, default_reps: 12, default_rest_sec: 90 },
+      { id: 'ex-8', template_id: 'tmpl-2', exercise_name: 'Romanian Deadlift', order_index: 3, default_sets: 3, default_reps: 10, default_rest_sec: 90 },
+      { id: 'ex-9', template_id: 'tmpl-2', exercise_name: 'Leg Extension', order_index: 4, default_sets: 3, default_reps: 15, default_rest_sec: 60 },
+      { id: 'ex-10', template_id: 'tmpl-2', exercise_name: 'Standing Calf Raise', order_index: 5, default_sets: 4, default_reps: 20, default_rest_sec: 60 },
+    ],
+    created_at: '2026-09-02T10:00:00Z',
+  },
+  {
+    id: 'tmpl-3',
+    trainer_id: 'trainer-1',
+    title: 'Sırt & Arka Kol (Kuvvet & Hacim)',
+    target_focus: 'Sırt & Kol',
+    description: 'V Taper görünümü ve arka kol gelişimi.',
+    exercises: [
+      { id: 'ex-11', template_id: 'tmpl-3', exercise_name: 'Deadlift', order_index: 1, default_sets: 4, default_reps: 6, default_rest_sec: 120 },
+      { id: 'ex-12', template_id: 'tmpl-3', exercise_name: 'Lat Pulldown', order_index: 2, default_sets: 4, default_reps: 10, default_rest_sec: 90 },
+      { id: 'ex-13', template_id: 'tmpl-3', exercise_name: 'Seated Cable Row', order_index: 3, default_sets: 3, default_reps: 12, default_rest_sec: 60 },
+      { id: 'ex-14', template_id: 'tmpl-3', exercise_name: 'Triceps Rope Pushdown', order_index: 4, default_sets: 4, default_reps: 15, default_rest_sec: 60 },
+      { id: 'ex-15', template_id: 'tmpl-3', exercise_name: 'Skull Crusher', order_index: 5, default_sets: 3, default_reps: 12, default_rest_sec: 60 },
+    ],
+    created_at: '2026-09-03T10:00:00Z',
+  },
+  {
+    id: 'tmpl-4',
+    trainer_id: 'trainer-1',
+    title: 'Omuz & Karın (Definisyon)',
+    target_focus: 'Definisyon',
+    description: 'Geniş omuzlar ve sıkı bir merkez bölgesi.',
+    exercises: [
+      { id: 'ex-16', template_id: 'tmpl-4', exercise_name: 'Overhead Dumbbell Press', order_index: 1, default_sets: 4, default_reps: 10, default_rest_sec: 90 },
+      { id: 'ex-17', template_id: 'tmpl-4', exercise_name: 'Lateral Raise', order_index: 2, default_sets: 4, default_reps: 15, default_rest_sec: 60 },
+      { id: 'ex-18', template_id: 'tmpl-4', exercise_name: 'Face Pull', order_index: 3, default_sets: 3, default_reps: 15, default_rest_sec: 60 },
+      { id: 'ex-19', template_id: 'tmpl-4', exercise_name: 'Hanging Leg Raise', order_index: 4, default_sets: 4, default_reps: 15, default_rest_sec: 60 },
+      { id: 'ex-20', template_id: 'tmpl-4', exercise_name: 'Plank', order_index: 5, default_sets: 3, default_reps: 60, default_rest_sec: 60 }, // reps represents seconds here
+    ],
+    created_at: '2026-09-04T10:00:00Z',
+  },
+  {
+    id: 'tmpl-5',
+    trainer_id: 'trainer-1',
+    title: 'Full Body Fonksiyonel Kondisyon',
+    target_focus: 'Full Body',
+    description: 'Tüm vücudu çalıştıran yüksek yoğunluklu kondisyon.',
+    exercises: [
+      { id: 'ex-21', template_id: 'tmpl-5', exercise_name: 'Kettlebell Swing', order_index: 1, default_sets: 4, default_reps: 20, default_rest_sec: 60 },
+      { id: 'ex-22', template_id: 'tmpl-5', exercise_name: 'Dumbbell Thruster', order_index: 2, default_sets: 4, default_reps: 15, default_rest_sec: 60 },
+      { id: 'ex-23', template_id: 'tmpl-5', exercise_name: 'Pull-up', order_index: 3, default_sets: 3, default_reps: 10, default_rest_sec: 60 },
+      { id: 'ex-24', template_id: 'tmpl-5', exercise_name: 'Push-up', order_index: 4, default_sets: 3, default_reps: 20, default_rest_sec: 60 },
+      { id: 'ex-25', template_id: 'tmpl-5', exercise_name: 'Box Jump', order_index: 5, default_sets: 3, default_reps: 10, default_rest_sec: 60 },
+    ],
+    created_at: '2026-09-05T10:00:00Z',
+  },
+];
+
+let mockWorkouts: Workout[] = [];
 
 export const api = {
   // Profiles
@@ -442,7 +523,7 @@ export const api = {
   // Workout Templates
   async getWorkoutTemplates(trainerId: string): Promise<WorkoutTemplate[]> {
     if (!isSupabaseConfigured) {
-      return [];
+      return mockWorkoutTemplates.filter(t => t.trainer_id === trainerId);
     }
     const { data, error } = await supabase
       .from('workout_templates')
@@ -453,10 +534,142 @@ export const api = {
     return data || [];
   },
 
+  async createWorkoutTemplate(template: Omit<WorkoutTemplate, 'id' | 'created_at'>, exercises: Omit<WorkoutTemplateExercise, 'id' | 'template_id'>[]): Promise<WorkoutTemplate> {
+    if (!isSupabaseConfigured) {
+      const newTemplate: WorkoutTemplate = {
+        id: 'tmpl-' + Date.now(),
+        created_at: new Date().toISOString(),
+        ...template,
+        exercises: exercises.map((ex, idx) => ({
+          ...ex,
+          id: 'ex-' + Date.now() + '-' + idx,
+          template_id: 'tmpl-' + Date.now(),
+        } as WorkoutTemplateExercise)),
+      };
+      mockWorkoutTemplates.unshift(newTemplate);
+      return newTemplate;
+    }
+    const { data: tmplData, error: tmplError } = await supabase
+      .from('workout_templates')
+      .insert(template)
+      .select()
+      .single();
+    if (tmplError) throw tmplError;
+
+    if (exercises.length > 0) {
+      const exToInsert = exercises.map(ex => ({ ...ex, template_id: tmplData.id }));
+      const { error: exError } = await supabase
+        .from('workout_template_exercises')
+        .insert(exToInsert);
+      if (exError) throw exError;
+    }
+
+    const { data, error } = await supabase
+      .from('workout_templates')
+      .select('*, exercises:workout_template_exercises(*)')
+      .eq('id', tmplData.id)
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteWorkoutTemplate(templateId: string): Promise<void> {
+    if (!isSupabaseConfigured) {
+      mockWorkoutTemplates = mockWorkoutTemplates.filter(t => t.id !== templateId);
+      return;
+    }
+    const { error } = await supabase
+      .from('workout_templates')
+      .delete()
+      .eq('id', templateId);
+    if (error) throw error;
+  },
+
+  async assignTemplateToClient(templateId: string, clientId: string, date: string): Promise<Workout> {
+    if (!isSupabaseConfigured) {
+      const template = mockWorkoutTemplates.find(t => t.id === templateId);
+      if (!template) throw new Error('Template not found');
+
+      const workoutId = 'w-' + Date.now();
+      const exercises: WorkoutExercise[] = (template.exercises || []).map((ex, idx) => ({
+        id: 'we-' + Date.now() + '-' + idx,
+        workout_id: workoutId,
+        exercise_name: ex.exercise_name,
+        sets: ex.default_sets,
+        reps: ex.default_reps,
+        weight_kg: 0,
+        rest_time_sec: ex.default_rest_sec,
+        is_completed: false,
+        order_index: ex.order_index,
+      }));
+
+      const newWorkout: Workout = {
+        id: workoutId,
+        client_id: clientId,
+        trainer_id: template.trainer_id,
+        template_id: template.id,
+        title: template.title,
+        date,
+        status: 'pending',
+        exercises,
+        created_at: new Date().toISOString(),
+      };
+      mockWorkouts.unshift(newWorkout);
+      return newWorkout;
+    }
+
+    const { data: template, error: tmplError } = await supabase
+      .from('workout_templates')
+      .select('*, exercises:workout_template_exercises(*)')
+      .eq('id', templateId)
+      .single();
+    
+    if (tmplError) throw tmplError;
+
+    const { data: workout, error: wError } = await supabase
+      .from('workouts')
+      .insert({
+        client_id: clientId,
+        trainer_id: template.trainer_id,
+        template_id: template.id,
+        title: template.title,
+        date,
+        status: 'pending',
+      } as any)
+      .select()
+      .single();
+    if (wError) throw wError;
+
+    if (template.exercises && template.exercises.length > 0) {
+      const weToInsert = template.exercises.map((ex: any) => ({
+        workout_id: workout.id,
+        exercise_name: ex.exercise_name,
+        sets: ex.default_sets,
+        reps: ex.default_reps,
+        weight_kg: 0,
+        rest_time_sec: ex.default_rest_sec,
+        order_index: ex.order_index,
+        is_completed: false,
+      }));
+      const { error: weError } = await supabase
+        .from('workout_exercises')
+        .insert(weToInsert);
+      if (weError) throw weError;
+    }
+
+    const { data, error } = await supabase
+      .from('workouts')
+      .select('*, exercises:workout_exercises(*)')
+      .eq('id', workout.id)
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
   // Workouts
   async getWorkouts(clientId: string): Promise<Workout[]> {
     if (!isSupabaseConfigured) {
-      return [];
+      return mockWorkouts.filter(w => w.client_id === clientId).sort((a, b) => b.date.localeCompare(a.date));
     }
     const { data, error } = await supabase
       .from('workouts')
@@ -469,7 +682,14 @@ export const api = {
 
   async markExerciseCompleted(exerciseId: string, isCompleted: boolean) {
     if (!isSupabaseConfigured) {
-      return { id: exerciseId, is_completed: isCompleted };
+      for (const w of mockWorkouts) {
+        const ex = w.exercises?.find(e => e.id === exerciseId);
+        if (ex) {
+          ex.is_completed = isCompleted;
+          return ex;
+        }
+      }
+      return null;
     }
     const { data, error } = await supabase
       .from('workout_exercises')

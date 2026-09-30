@@ -5,15 +5,10 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import { useTheme } from '../context/ThemeContext';
 import { api } from '../services/api';
-import { Package, ClientMetric, TanitaReport } from '../types';
+import { Package, ClientMetric, TanitaReport, WorkoutTemplate, Workout } from '../types';
+import { supabase, isSupabaseConfigured } from '../utils/supabase';
 
-const WORKOUT_TYPES = [
-  'Hipertrofi (Push/Pull/Legs)',
-  'Güç (5x5 Powerlifting)',
-  'Dayanıklılık (HIIT & Cardio)',
-  'Mobilite & Yoga',
-  'Definisyon (Yağ Yakım)'
-];
+
 
 const DIET_TYPES = [
   'Yüksek Protein / Düşük Karb',
@@ -43,6 +38,8 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
 
   // Tanita Reports Vault State
   const [tanitaReports, setTanitaReports] = useState<TanitaReport[]>([]);
+  const [workoutTemplates, setWorkoutTemplates] = useState<WorkoutTemplate[]>([]);
+  const [clientWorkouts, setClientWorkouts] = useState<Workout[]>([]);
   const [selectedDocument, setSelectedDocument] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [tanitaForm, setTanitaForm] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -60,16 +57,26 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
 
   const loadData = async () => {
     try {
-      const [pkg, metricsData, reportsData] = await Promise.all([
+      let currentTrainerId = 'trainer-1';
+      if (isSupabaseConfigured) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) currentTrainerId = user.id;
+      }
+      
+      const [pkg, metricsData, reportsData, templatesData, workoutsData] = await Promise.all([
         api.getClientPackage(client.id),
         api.getMetrics(client.id),
         api.getTanitaReports(client.id),
+        api.getWorkoutTemplates(currentTrainerId),
+        api.getWorkouts(client.id),
       ]);
       setActivePackage(pkg);
       if (metricsData && metricsData.length > 0) {
         setLatestMetric(metricsData[0]); // newest is first
       }
       setTanitaReports(reportsData || []);
+      setWorkoutTemplates(templatesData || []);
+      setClientWorkouts(workoutsData || []);
     } catch (error) {
       console.warn('Error loading client detail data:', error);
     } finally {
@@ -248,6 +255,30 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
 
   const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(amount);
+  };
+
+  const handleSaveAsTemplate = async (workout: Workout) => {
+    try {
+      setLoading(true);
+      await api.createWorkoutTemplate({
+        trainer_id: workout.trainer_id || 'trainer-1',
+        title: `${workout.title} (Kopya)`,
+        target_focus: 'Karma',
+        description: `${client.full_name || client.name} kişisinden kaydedilen şablon`,
+      }, (workout.exercises || []).map(ex => ({
+        exercise_name: ex.exercise_name,
+        order_index: ex.order_index || 0,
+        default_sets: ex.sets || 3,
+        default_reps: typeof ex.reps === 'number' ? ex.reps : parseInt(ex.reps || '10', 10) || 10,
+        default_rest_sec: ex.rest_time_sec || 60,
+      })));
+      Alert.alert('Başarılı', 'Şablon başarıyla kütüphanenize eklendi.');
+      await loadData();
+    } catch (e) {
+      Alert.alert('Hata', 'Şablon olarak kaydedilemedi.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const packagePrice = activePackage ? Number(activePackage.package_price) : 0;
@@ -713,19 +744,27 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
             activeOpacity={1}
             onPress={() => setWorkoutModalVisible(false)}
           />
-          <View style={[styles.modalContent, { backgroundColor: colors.card, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, maxHeight: '80%' }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>Antrenman Şablonu Ata</Text>
-            <ScrollView>
-              {WORKOUT_TYPES.map(w => (
-                <TouchableOpacity key={w} style={[styles.modalOption, { borderBottomColor: colors.border }]} onPress={() => handleAssign('Antrenman', w)}>
-                  <Text style={[styles.modalOptionText, { color: colors.text }]}>{w}</Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {workoutTemplates.length > 0 ? workoutTemplates.map(w => (
+                <TouchableOpacity key={w.id} style={[styles.modalOption, { borderBottomColor: colors.border }]} onPress={async () => {
+                  try {
+                    await api.assignTemplateToClient(w.id, client.id, new Date().toISOString().split('T')[0]);
+                    Alert.alert('Başarılı', `${w.title} şablonu atandı.`);
+                    setWorkoutModalVisible(false);
+                  } catch (e) {
+                    Alert.alert('Hata', 'Şablon atanamadı.');
+                  }
+                }}>
+                  <View>
+                    <Text style={[styles.modalOptionText, { color: colors.text }]}>{w.title}</Text>
+                    {w.target_focus && <Text style={{ color: colors.primary, fontSize: 12 }}>{w.target_focus}</Text>}
+                  </View>
                 </TouchableOpacity>
-              ))}
-              <Text style={[styles.customLabel, { color: colors.textMuted }]}>Veya özel isim girin:</Text>
-              <TextInput style={[styles.customInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, borderRadius: radius.button }]} placeholder="Özel antrenman..." placeholderTextColor={colors.textMuted} value={customText} onChangeText={setCustomText} />
-              <TouchableOpacity style={[styles.customSubmitBtn, { backgroundColor: colors.primary, borderRadius: radius.button }]} onPress={() => handleAssign('Antrenman', customText || 'Özel Antrenman')}>
-                <Text style={{color: '#FFF', fontWeight: 'bold'}}>Kaydet</Text>
-              </TouchableOpacity>
+              )) : (
+                <Text style={{ color: colors.textMuted, textAlign: 'center', marginVertical: 20 }}>Kütüphanede şablon bulunmuyor. Şablon Kütüphanesi'nden yeni şablonlar ekleyebilirsiniz.</Text>
+              )}
             </ScrollView>
             <TouchableOpacity style={styles.closeModalBtn} onPress={() => setWorkoutModalVisible(false)}>
               <Text style={styles.closeModalText}>İptal</Text>

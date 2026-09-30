@@ -129,6 +129,15 @@ export const TrainerDashboard = ({ navigation }: any) => {
           <Text style={[styles.actionButtonText, { color: colors.text }]}>Seans QR Üret</Text>
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity 
+        style={[styles.fullWidthActionButton, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: radius.card }]} 
+        onPress={() => navigation.navigate('WorkoutTemplates')}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="barbell" size={28} color={colors.primary} style={styles.actionIcon} />
+        <Text style={[styles.actionButtonText, { color: colors.text }]}>Şablon Kütüphanesi</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 };
@@ -206,5 +215,14 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontWeight: '600',
     fontSize: 15,
+  },
+  fullWidthActionButton: {
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    marginBottom: 20,
   }
 });

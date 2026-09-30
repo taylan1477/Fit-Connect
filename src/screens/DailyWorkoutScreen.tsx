@@ -1,48 +1,98 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { api } from '../services/api';
+import { supabase, isSupabaseConfigured } from '../utils/supabase';
+import { Workout, WorkoutExercise } from '../types';
 
 export const DailyWorkoutScreen = () => {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   
-  const [exercises, setExercises] = useState([
-    { id: 1, name: 'Barbell Squat', sets: '4', reps: '10-12', completed: false },
-    { id: 2, name: 'Leg Press', sets: '3', reps: '15', completed: false },
-    { id: 3, name: 'Walking Lunges', sets: '3', reps: '20 steps', completed: false },
-  ]);
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const toggleComplete = (id: number) => {
-    setExercises(exercises.map(ex => ex.id === id ? { ...ex, completed: !ex.completed } : ex));
+  useEffect(() => {
+    loadWorkouts();
+  }, []);
+
+  const loadWorkouts = async () => {
+    try {
+      setLoading(true);
+      let clientId = 'client-1'; // fallback
+      if (isSupabaseConfigured) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) clientId = user.id;
+      }
+      const data = await api.getWorkouts(clientId);
+      setWorkouts(data);
+    } catch (e) {
+      console.warn(e);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const toggleComplete = async (exercise: WorkoutExercise) => {
+    try {
+      // optimistic update
+      setWorkouts(current => current.map(w => ({
+        ...w,
+        exercises: w.exercises?.map(ex => ex.id === exercise.id ? { ...ex, is_completed: !ex.is_completed } : ex)
+      })));
+      await api.markExerciseCompleted(exercise.id, !exercise.is_completed);
+    } catch (e) {
+      // revert on error
+      loadWorkouts();
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.mainContainer, { backgroundColor: colors.background, paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ color: colors.text }}>Yükleniyor...</Text>
+      </View>
+    );
+  }
+
+  const todayWorkout = workouts.find(w => w.date === new Date().toISOString().split('T')[0]) || workouts[0];
 
   return (
     <View style={[styles.mainContainer, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>Today's Workout</Text>
-          <Text style={[styles.subtitle, { color: colors.textMuted }]}>Leg Day (Hypertrophy)</Text>
-        </View>
-
-        {exercises.map((ex) => (
-          <View key={ex.id} style={[styles.exerciseCard, { backgroundColor: colors.card }]}>
-            <View style={styles.exerciseInfo}>
-              <Text style={[styles.exerciseName, { color: ex.completed ? colors.textMuted : colors.text, textDecorationLine: ex.completed ? 'line-through' : 'none' }]}>{ex.name}</Text>
-              <Text style={styles.exerciseDetails}>{ex.sets} sets x {ex.reps}</Text>
+        {todayWorkout ? (
+          <>
+            <View style={styles.header}>
+              <Text style={[styles.title, { color: colors.text }]}>{todayWorkout.title || "Bugünün Antrenmanı"}</Text>
+              <Text style={[styles.subtitle, { color: colors.textMuted }]}>{todayWorkout.date}</Text>
             </View>
-            <TouchableOpacity 
-              style={[styles.checkbox, ex.completed && styles.checkboxActive]} 
-              onPress={() => toggleComplete(ex.id)}
-            >
-              {ex.completed && <Text style={styles.checkmark}>✓</Text>}
-            </TouchableOpacity>
-          </View>
-        ))}
 
-        <TouchableOpacity style={styles.finishButton}>
-          <Text style={styles.finishButtonText}>Complete Workout</Text>
-        </TouchableOpacity>
+            {todayWorkout.exercises?.map((ex) => (
+              <View key={ex.id} style={[styles.exerciseCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
+                <View style={styles.exerciseInfo}>
+                  <Text style={[styles.exerciseName, { color: ex.is_completed ? colors.textMuted : colors.text, textDecorationLine: ex.is_completed ? 'line-through' : 'none' }]}>{ex.exercise_name}</Text>
+                  <Text style={styles.exerciseDetails}>{ex.sets} sets x {ex.reps} {ex.weight_kg ? `| ${ex.weight_kg}kg` : ''}</Text>
+                </View>
+                <TouchableOpacity 
+                  style={[styles.checkbox, ex.is_completed && styles.checkboxActive]} 
+                  onPress={() => toggleComplete(ex)}
+                >
+                  {ex.is_completed && <Text style={styles.checkmark}>✓</Text>}
+                </TouchableOpacity>
+              </View>
+            ))}
+
+            <TouchableOpacity style={styles.finishButton}>
+              <Text style={styles.finishButtonText}>Antrenmanı Bitir</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <View style={styles.header}>
+            <Text style={[styles.title, { color: colors.text }]}>Program Yok</Text>
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>Bugün için atanmış bir antrenman bulunmuyor.</Text>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
