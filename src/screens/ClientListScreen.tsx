@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   ScrollView,
+  Modal,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -31,6 +33,13 @@ export const ClientListScreen = ({ navigation }: any) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('Tümü');
 
+  const [isCreateModalVisible, setCreateModalVisible] = useState(false);
+  const [newClientName, setNewClientName] = useState('');
+  const [newClientEmail, setNewClientEmail] = useState('');
+  const [newClientPhone, setNewClientPhone] = useState('');
+  const [newClientPassword, setNewClientPassword] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+
   const fetchClients = async () => {
     try {
       const data = await api.getClientsWithPackages();
@@ -40,6 +49,37 @@ export const ClientListScreen = ({ navigation }: any) => {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const handleCreateClient = async () => {
+    if (!newClientName || !newClientEmail || !newClientPassword) {
+      Alert.alert('Hata', 'Lütfen ad, e-posta ve şifre alanlarını doldurun.');
+      return;
+    }
+    if (newClientPassword.length < 6) {
+      Alert.alert('Hata', 'Şifre en az 6 karakter olmalıdır.');
+      return;
+    }
+    
+    setIsCreating(true);
+    try {
+      await api.createClientAccount({
+        email: newClientEmail,
+        password: newClientPassword,
+        full_name: newClientName,
+        phone: newClientPhone,
+      });
+      setCreateModalVisible(false);
+      setNewClientName('');
+      setNewClientEmail('');
+      setNewClientPhone('');
+      setNewClientPassword('');
+      fetchClients(); // Listeyi yenile
+    } catch (error: any) {
+      Alert.alert('Hata', error.message || 'Danışan eklenemedi.');
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -243,11 +283,18 @@ export const ClientListScreen = ({ navigation }: any) => {
         </ScrollView>
       </View>
 
-      {/* Header Count */}
+      {/* Header Count and Add Button */}
       <View style={styles.listHeader}>
         <Text style={[styles.listHeaderTitle, { color: colors.textMuted }]}>
           Danışanlar ({filteredClients.length})
         </Text>
+        <TouchableOpacity 
+          style={[styles.addButton, { backgroundColor: colors.primary, borderRadius: radius.button }]}
+          onPress={() => setCreateModalVisible(true)}
+        >
+          <Ionicons name="add" size={16} color="#fff" />
+          <Text style={styles.addButtonText}>Yeni Danışan</Text>
+        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -269,6 +316,86 @@ export const ClientListScreen = ({ navigation }: any) => {
           </View>
         }
       />
+
+      {/* Yeni Danışan Ekle Modal */}
+      <Modal visible={isCreateModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card, borderRadius: radius.card, borderColor: colors.border }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Yeni Danışan Ekle</Text>
+              <TouchableOpacity onPress={() => setCreateModalVisible(false)}>
+                <Ionicons name="close" size={24} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 400 }}>
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>Ad Soyad</Text>
+              <TextInput
+                style={[styles.modalInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                placeholder="Örn: Ahmet Yılmaz"
+                placeholderTextColor={colors.textMuted}
+                value={newClientName}
+                onChangeText={setNewClientName}
+              />
+
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>E-posta</Text>
+              <TextInput
+                style={[styles.modalInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                placeholder="Örn: ahmet@example.com"
+                placeholderTextColor={colors.textMuted}
+                value={newClientEmail}
+                onChangeText={setNewClientEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>Telefon (Opsiyonel)</Text>
+              <TextInput
+                style={[styles.modalInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                placeholder="Örn: +905301234567"
+                placeholderTextColor={colors.textMuted}
+                value={newClientPhone}
+                onChangeText={setNewClientPhone}
+                keyboardType="phone-pad"
+              />
+
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>Geçici Şifre</Text>
+              <TextInput
+                style={[styles.modalInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                placeholder="En az 6 karakter"
+                placeholderTextColor={colors.textMuted}
+                value={newClientPassword}
+                onChangeText={setNewClientPassword}
+                secureTextEntry
+              />
+              <Text style={[styles.hintText, { color: colors.textMuted }]}>
+                Not: Danışan ilk girişinde şifresini değiştirmeye zorlanacaktır.
+              </Text>
+            </ScrollView>
+
+            <View style={styles.modalActionRow}>
+              <TouchableOpacity
+                style={[styles.modalCancelButton, { borderColor: colors.border }]}
+                onPress={() => setCreateModalVisible(false)}
+                disabled={isCreating}
+              >
+                <Text style={[styles.modalCancelText, { color: colors.textMuted }]}>İptal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalSaveButton, { backgroundColor: colors.primary }]}
+                onPress={handleCreateClient}
+                disabled={isCreating}
+              >
+                {isCreating ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.modalSaveText}>Oluştur</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -436,5 +563,81 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     paddingHorizontal: 20,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    gap: 4,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    padding: 20,
+    borderWidth: 1,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 6,
+    marginTop: 12,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 44,
+    fontSize: 15,
+  },
+  hintText: {
+    fontSize: 11,
+    marginTop: 6,
+    fontStyle: 'italic',
+  },
+  modalActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 24,
+    gap: 12,
+  },
+  modalCancelButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  modalCancelText: {
+    fontWeight: '600',
+  },
+  modalSaveButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  modalSaveText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });

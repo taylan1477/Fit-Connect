@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     role TEXT NOT NULL CHECK (role IN ('trainer', 'client')),
     full_name TEXT NOT NULL,
     phone TEXT,
+    must_change_password BOOLEAN DEFAULT FALSE,
     avatar_url TEXT,
     trainer_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
@@ -207,18 +208,38 @@ CREATE POLICY "Client metrics insertable by trainer or client" ON public.client_
 
 -- Profile creation trigger from Supabase Auth
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger AS $$
+RETURNS TRIGGER 
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql
+AS $$
 BEGIN
-  INSERT INTO public.profiles (id, email, full_name, role)
+  INSERT INTO public.profiles (
+    id,
+    email,
+    role,
+    full_name,
+    trainer_id,
+    phone,
+    must_change_password
+  )
   VALUES (
     new.id,
     new.email,
+    COALESCE(new.raw_user_meta_data->>'role', 'client'),
     COALESCE(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
-    COALESCE(new.raw_user_meta_data->>'role', 'client')
-  );
+    (new.raw_user_meta_data->>'trainer_id')::UUID,
+    new.raw_user_meta_data->>'phone',
+    COALESCE((new.raw_user_meta_data->>'must_change_password')::BOOLEAN, false)
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    full_name = EXCLUDED.full_name,
+    phone = EXCLUDED.phone,
+    trainer_id = EXCLUDED.trainer_id;
+
   RETURN new;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created

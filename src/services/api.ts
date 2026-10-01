@@ -424,6 +424,42 @@ export const api = {
     return results;
   },
 
+  async createClientAccount(clientData: {
+    email: string;
+    password: string;
+    full_name: string;
+    phone?: string;
+  }) {
+    if (!isSupabaseConfigured) {
+      const mockClient = {
+        id: `mock-client-${Date.now()}`,
+        email: clientData.email,
+        full_name: clientData.full_name,
+        role: 'client' as const,
+        phone: clientData.phone || '',
+        trainer_id: 'trainer-1', // Mock trainer id
+        created_at: new Date().toISOString(),
+      };
+      mockProfiles.push(mockClient as any);
+      return mockClient;
+    }
+
+    const { data, error } = await supabase.functions.invoke('create-client', {
+      body: clientData,
+    });
+
+    if (error) {
+      throw new Error(error.message || 'Danışan hesabı oluşturulamadı.');
+    }
+
+    // Edge function hata gövdesi kontrolü
+    if (data?.error) {
+      throw new Error(data.error);
+    }
+
+    return data?.user;
+  },
+
   // Packages & Financials (PT-App Legacy Engine)
   async getClientPackage(clientId: string): Promise<Package | null> {
     if (!isSupabaseConfigured) {
