@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,7 @@ export const QRScannerScreen = ({ navigation }: any) => {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   if (!permission) {
     return (
@@ -54,20 +55,7 @@ export const QRScannerScreen = ({ navigation }: any) => {
           console.warn('Session deduct response:', decErr);
         }
 
-        Alert.alert(
-          'Seans Onaylandı! 🎉',
-          'Antrenörünüzün QR kodu doğrulandı ve 1 seansınız başarıyla düşüldü.',
-          [
-            {
-              text: 'Tamam',
-              onPress: () => {
-                setScanned(false);
-                setProcessing(false);
-                navigation.goBack();
-              },
-            },
-          ]
-        );
+        setShowSuccessModal(true);
       } else {
         Alert.alert('Geçersiz Kod', 'Taranan QR kod bir Fit-Connect seans kodu değildir.', [
           { text: 'Tekrar Dene', onPress: () => { setScanned(false); setProcessing(false); } },
@@ -127,6 +115,36 @@ export const QRScannerScreen = ({ navigation }: any) => {
           </View>
         )}
       </View>
+
+      {/* Success Modal */}
+      <Modal
+        visible={showSuccessModal}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            <View style={[styles.successIconContainer, { backgroundColor: colors.success + '20' }]}>
+              <Ionicons name="checkmark-circle" size={60} color={colors.success} />
+            </View>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Seans Onaylandı! 🎉</Text>
+            <Text style={[styles.modalText, { color: colors.textMuted }]}>
+              Antrenörünüzün QR kodu doğrulandı ve 1 seansınız başarıyla düşüldü. İyi antrenmanlar!
+            </Text>
+            <TouchableOpacity
+              style={[styles.modalButton, { backgroundColor: colors.primary, borderRadius: radius.button }]}
+              onPress={() => {
+                setShowSuccessModal(false);
+                setScanned(false);
+                setProcessing(false);
+                navigation.goBack();
+              }}
+            >
+              <Text style={styles.modalButtonText}>Tamam</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -233,5 +251,47 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 15,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    width: '100%',
+    padding: 32,
+    borderRadius: 24,
+    alignItems: 'center',
+  },
+  successIconContainer: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 12,
+  },
+  modalText: {
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 32,
+  },
+  modalButton: {
+    width: '100%',
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

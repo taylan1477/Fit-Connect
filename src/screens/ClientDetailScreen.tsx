@@ -756,6 +756,13 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
             <Ionicons name="restaurant" size={24} color={colors.primary} style={{ marginBottom: 8 }} />
             <Text style={[styles.actionButtonText, { color: colors.text }]}>Diyet Ata</Text>
           </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.actionButton, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: radius.card }]}
+            onPress={() => navigation.navigate('ProgressGallery', { clientId: client.id })}
+          >
+            <Ionicons name="images" size={24} color={colors.primary} style={{ marginBottom: 8 }} />
+            <Text style={[styles.actionButtonText, { color: colors.text }]}>Gelişim Galerisi</Text>
+          </TouchableOpacity>
         </View>
         <View style={{ height: 40 }} />
       </ScrollView>

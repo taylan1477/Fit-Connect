@@ -172,6 +172,8 @@ export interface ProgressPhoto {
   front_image_url?: string;
   side_image_url?: string;
   back_image_url?: string;
+  weight_kg?: number;
+  notes?: string;
   created_at: string;
 }
 

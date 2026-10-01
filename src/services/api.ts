@@ -10,6 +10,7 @@ import {
   TanitaReport,
   Diet,
   NutritionTemplate,
+  ProgressPhoto,
 } from '../types';
 import { toISODate } from '../utils/date';
 
@@ -248,6 +249,31 @@ let mockWorkoutTemplates: WorkoutTemplate[] = [
 ];
 
 let mockWorkouts: Workout[] = [];
+
+let mockProgressPhotos: ProgressPhoto[] = [
+  {
+    id: 'photo-1',
+    client_id: '1',
+    week_label: 'Hafta 1 (Başlangıç)',
+    front_image_url: 'https://i.ibb.co/3s6qPXZ/default-front.png',
+    side_image_url: 'https://i.ibb.co/L9p6sQG/default-side.png',
+    back_image_url: 'https://i.ibb.co/1KzqWc9/default-back.png',
+    weight_kg: 84.0,
+    notes: 'Başlangıç formu. Yağ oranı biraz yüksek.',
+    created_at: '2026-08-15T10:00:00Z',
+  },
+  {
+    id: 'photo-2',
+    client_id: '1',
+    week_label: 'Hafta 4 (Gelişim)',
+    front_image_url: 'https://i.ibb.co/3s6qPXZ/default-front.png',
+    side_image_url: 'https://i.ibb.co/L9p6sQG/default-side.png',
+    back_image_url: 'https://i.ibb.co/1KzqWc9/default-back.png',
+    weight_kg: 81.5,
+    notes: 'Bel çevresinde incelme, omuzlarda hacim artışı.',
+    created_at: '2026-09-15T10:00:00Z',
+  }
+];
 
 let mockNutritionTemplates: NutritionTemplate[] = [
   {
@@ -974,5 +1000,52 @@ export const api = {
       .single();
     if (error) throw error;
     return data;
+  },
+
+  // Progress Gallery
+  async getProgressPhotos(clientId: string): Promise<ProgressPhoto[]> {
+    if (!isSupabaseConfigured) {
+      return mockProgressPhotos
+        .filter(p => p.client_id === clientId)
+        .sort((a, b) => b.created_at.localeCompare(a.created_at));
+    }
+    const { data, error } = await supabase
+      .from('progress_photos')
+      .select('*')
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async addProgressPhoto(photo: Omit<ProgressPhoto, 'id' | 'created_at'>): Promise<ProgressPhoto> {
+    if (!isSupabaseConfigured) {
+      const newPhoto: ProgressPhoto = {
+        id: 'photo-' + Date.now(),
+        created_at: new Date().toISOString(),
+        ...photo,
+      };
+      mockProgressPhotos.unshift(newPhoto);
+      return newPhoto;
+    }
+    const { data, error } = await supabase
+      .from('progress_photos')
+      .insert(photo)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteProgressPhoto(photoId: string): Promise<void> {
+    if (!isSupabaseConfigured) {
+      mockProgressPhotos = mockProgressPhotos.filter(p => p.id !== photoId);
+      return;
+    }
+    const { error } = await supabase
+      .from('progress_photos')
+      .delete()
+      .eq('id', photoId);
+    if (error) throw error;
   },
 };
