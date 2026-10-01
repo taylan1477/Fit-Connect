@@ -31,6 +31,7 @@ import { DietTrackerScreen } from '../screens/DietTrackerScreen';
 import { ProgressGalleryScreen } from '../screens/ProgressGalleryScreen';
 import { ClientMetricsHistoryScreen } from '../screens/ClientMetricsHistoryScreen';
 import { WorkoutTemplatesScreen } from '../screens/WorkoutTemplatesScreen';
+import { NutritionTemplatesScreen } from '../screens/NutritionTemplatesScreen';
 
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -431,6 +432,11 @@ const MainStack = () => {
           name="WorkoutTemplates"
           component={WorkoutTemplatesScreen}
           options={{ title: 'Şablon Kütüphanesi' }}
+        />
+        <Stack.Screen
+          name="NutritionTemplates"
+          component={NutritionTemplatesScreen}
+          options={{ title: 'Beslenme Şablonları' }}
         />
         <Stack.Screen
           name="ClientHub"

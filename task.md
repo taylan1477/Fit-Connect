@@ -119,7 +119,69 @@
 ### 4. Saving State
 - [x] Create `api.updateWorkoutProgress` to batch update the workout, its completed sets, and volume.
 - [x] Call upon pressing "Complete Workout".
-- [ ] Call upon pressing "Complete Workout".
+
+---
+
+## 🚀 Day 7: Nutrition Engine & Macro Templates
+**Status:** Completed
+**Target Delivery:** Macro prescription (Target Calories, Protein, Carbs, Fat), 4-4-9 formula calculator, scheduled meals builder, plate photo logging, and client meal completion.
+
+### 1. Data Models & API Engine
+- [x] Update `MealItem` with `calories`, `is_completed`, `photo_uri`.
+- [x] Add initial rich mock templates (*High Protein Definasyon 1950 kcal*, *Clean Bulk 2800 kcal*, *Ketojenik 2100 kcal*) and mock client diet in `src/services/api.ts`.
+- [x] Implement `getNutritionTemplates`, `createNutritionTemplate`, `deleteNutritionTemplate`, `assignNutritionPlan`, `getLatestDiet`, `toggleMealCompleted` with offline and Supabase cloud support.
+
+### 2. Trainer Nutrition Templates Library (NutritionTemplatesScreen)
+- [x] Create `NutritionTemplatesScreen.tsx` with category filters (Tümü, Definisyon, Bulk, Keto, Dengeli).
+- [x] Macro badges and visual ratio bar ($P \times 4 + C \times 4 + F \times 9$).
+- [x] "Yeni Şablon Ekle" modal with live 4-4-9 calorie calculation and dynamic meals builder (hours, names, ingredients, calories).
+- [x] "Danışana Şablon Ata" modal with client picker and custom trainer notes.
+
+### 3. Client Detail Screen (ClientDetailScreen)
+- [x] Add "Beslenme & Diyet Planı" card displaying active diet macros, ratio bar, meal count, and trainer notes.
+- [x] Add "Şablondan Diyet Ata / Planı Değiştir" modal allowing immediate assignment from the template vault.
+
+### 4. Client Nutrition Screen (DietTrackerScreen)
+- [x] Rewrite with PT-App dark mode aesthetics (`#121212`, `#1E1E1E`, `#FF6B00`).
+- [x] Macro targets header with % completion badge and dynamic progress bar.
+- [x] Scheduled meals stream with checkboxes and plate photo picker (`expo-image-picker`).
+- [x] Stylized empty state when no diet is assigned.
+
+### 5. Navigation & Verification
+- [x] Register `NutritionTemplates` in `AppNavigator.tsx`.
+- [x] Add quick action button in `TrainerDashboard.tsx`.
+- [x] TypeScript verification passed with zero errors (`npx tsc --noEmit`).
+
+---
+
+## 🚀 Day 8: Seans Kuralları, Dinamik Rozetler & Hızlı İletişim
+**Status:** Completed
+**Target Delivery:** Dynamic package rules, status badges (Aktif / Az Kaldı / Bitti), 6px linear progress bar, client list filter pills, and quick direct communication (WhatsApp, Call, SMS) across Trainer and Client panels.
+
+### 1. Data Models & API Services
+- [x] Add default phone numbers to `mockProfiles` (`+90530...`, `+90532...`, `+90533...`, `+90535...`).
+- [x] Implement `api.updateClientPhone(clientId, phone)` supporting both mock memory and Supabase.
+- [x] Implement `api.getClientsWithPackages(trainerId)` for single-query retrieval of clients and active packages.
+
+### 2. Trainer Client List Screen (ClientListScreen)
+- [x] Add status filter pills: `Tümü`, `Aktif` (>3 seans), `Az Kaldı` (1-3 seans), `Bitti` (0 seans).
+- [x] Render PT-App standard 6px Linear Progress Bar (`#FF6B00`) on each client card with remaining vs total sessions.
+- [x] Dynamic status badges with color dots matching `ThemeContext.getStatusColor` (`#4CAF50`, `#FFA000`, `#E53935`).
+
+### 3. Client Detail Screen (ClientDetailScreen)
+- [x] Display client phone number with editable modal and pencil icon.
+- [x] Render 3 direct quick action buttons (`[WhatsApp]`, `[Ara]`, `[SMS]`) triggering native URL schemes (`whatsapp://`, `tel:`, `sms:`).
+- [x] If phone is missing when pressing quick actions, trigger phone input modal.
+- [x] Render 6px Linear Progress Bar (`#FF6B00`) in the financial status / package card.
+
+### 4. Client Dashboard Screen (ClientDashboard)
+- [x] Display active package remaining sessions counter and dynamic status badge (`Aktif`, `Az Kaldı`, `Bitti`).
+- [x] Render 6px Linear Progress Bar (`#FF6B00`) showing remaining session percentage.
+- [x] Add "Özel Antrenörünüzle İletişim" card with quick WhatsApp and Call buttons.
+
+### 5. Verification
+- [x] Full TypeScript compilation passed with zero errors (`npx tsc --noEmit`).
+
 
  
  

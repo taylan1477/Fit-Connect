@@ -5,7 +5,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import { useTheme } from '../context/ThemeContext';
 import { api } from '../services/api';
-import { Package, ClientMetric, TanitaReport, WorkoutTemplate, Workout } from '../types';
+import { Package, ClientMetric, TanitaReport, WorkoutTemplate, Workout, NutritionTemplate, Diet } from '../types';
 import { supabase, isSupabaseConfigured } from '../utils/supabase';
 import { formatDisplayDate, getTodayDisplayDate, toISODate } from '../utils/date';
 
@@ -37,6 +37,11 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
   const [customText, setCustomText] = useState('');
   const [paymentAmountStr, setPaymentAmountStr] = useState('');
 
+  // Quick Communication & Phone State
+  const [clientPhone, setClientPhone] = useState(client.phone || '');
+  const [phoneModalVisible, setPhoneModalVisible] = useState(false);
+  const [tempPhone, setTempPhone] = useState(client.phone || '');
+
   // Tanita Reports Vault State
   const [tanitaReports, setTanitaReports] = useState<TanitaReport[]>([]);
   const [workoutTemplates, setWorkoutTemplates] = useState<WorkoutTemplate[]>([]);
@@ -57,6 +62,10 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
     waist: '', hips: '', thigh: '', calf: '', notes: ''
   });
 
+  // Nutrition & Diet State
+  const [nutritionTemplates, setNutritionTemplates] = useState<NutritionTemplate[]>([]);
+  const [clientDiet, setClientDiet] = useState<Diet | null>(null);
+
   const loadData = async () => {
     try {
       let currentTrainerId = 'trainer-1';
@@ -65,25 +74,56 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
         if (user) currentTrainerId = user.id;
       }
       
-      const [pkg, metricsData, reportsData, templatesData, workoutsData] = await Promise.all([
+      const [pkg, metricsData, reportsData, templatesData, workoutsData, nTemplatesData, dietData, clientProfile] = await Promise.all([
         api.getClientPackage(client.id),
         api.getMetrics(client.id),
         api.getTanitaReports(client.id),
         api.getWorkoutTemplates(currentTrainerId),
         api.getWorkouts(client.id),
+        api.getNutritionTemplates(currentTrainerId),
+        api.getLatestDiet(client.id),
+        api.getProfile(client.id),
       ]);
       setActivePackage(pkg);
       if (metricsData && metricsData.length > 0) {
         setLatestMetric(metricsData[0]); // newest is first
       }
+      if (clientProfile?.phone) {
+        setClientPhone(clientProfile.phone);
+      }
       setTanitaReports(reportsData || []);
       setWorkoutTemplates(templatesData || []);
       setClientWorkouts(workoutsData || []);
+      setNutritionTemplates(nTemplatesData || []);
+      setClientDiet(dietData || null);
     } catch (error) {
       console.warn('Error loading client detail data:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const handleAssignNutritionTemplate = async (template: NutritionTemplate) => {
+    try {
+      setLoading(true);
+      const assigned = await api.assignNutritionPlan(client.id, {
+        trainer_id: 'trainer-1',
+        date: getTodayDisplayDate(),
+        target_calories: template.target_calories,
+        target_protein_g: template.target_protein_g,
+        target_carbs_g: template.target_carbs_g,
+        target_fat_g: template.target_fat_g,
+        meals: template.meals.map(m => ({ ...m, is_completed: false })),
+        trainer_notes: 'Öğün saatlerine uymaya ve yeterli su tüketmeye özen göster.',
+      });
+      setClientDiet(assigned);
+      setDietModalVisible(false);
+      Alert.alert('Başarılı', `"${template.title}" beslenme planı danışana başarıyla atandı.`);
+    } catch (err: any) {
+      Alert.alert('Hata', err.message || 'Diyet atanamadı.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -226,6 +266,64 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
     );
   };
 
+  const handleOpenWhatsApp = () => {
+    if (!clientPhone) {
+      setTempPhone('');
+      setPhoneModalVisible(true);
+      return;
+    }
+    const cleanPhone = clientPhone.replace(/[^0-9]/g, '');
+    const url = `whatsapp://send?phone=${cleanPhone}`;
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Hata', 'WhatsApp uygulaması açılamadı. Cihazınızda WhatsApp yüklü olduğundan emin olun.');
+    });
+  };
+
+  const handleOpenPhone = () => {
+    if (!clientPhone) {
+      setTempPhone('');
+      setPhoneModalVisible(true);
+      return;
+    }
+    const cleanPhone = clientPhone.replace(/[^0-9+]/g, '');
+    const url = `tel:${cleanPhone}`;
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Hata', 'Arama başlatılamadı.');
+    });
+  };
+
+  const handleOpenSMS = () => {
+    if (!clientPhone) {
+      setTempPhone('');
+      setPhoneModalVisible(true);
+      return;
+    }
+    const cleanPhone = clientPhone.replace(/[^0-9+]/g, '');
+    const url = `sms:${cleanPhone}`;
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Hata', 'SMS uygulaması açılamadı.');
+    });
+  };
+
+  const handleSavePhone = async () => {
+    if (!tempPhone.trim()) {
+      Alert.alert('Uyarı', 'Lütfen geçerli bir telefon numarası girin.');
+      return;
+    }
+    try {
+      setLoading(true);
+      await api.updateClientPhone(client.id, tempPhone.trim());
+      setClientPhone(tempPhone.trim());
+      client.phone = tempPhone.trim();
+      setPhoneModalVisible(false);
+      Alert.alert('Başarılı', 'Telefon numarası güncellendi.');
+    } catch (err: any) {
+      Alert.alert('Hata', err.message || 'Telefon numarası kaydedilemedi.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAddMetric = async () => {
     try {
       setLoading(true);
@@ -319,10 +417,21 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
       >
         {/* Header Profile Info */}
         <View style={[styles.headerCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: radius.card }]}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <View style={{ flex: 1, marginRight: 10 }}>
               <Text style={[styles.clientName, { color: colors.text }]}>{client.full_name || client.name}</Text>
               <Text style={[styles.clientGoal, { color: colors.textMuted }]}>{client.email}</Text>
+              <TouchableOpacity 
+                onPress={() => { setTempPhone(clientPhone); setPhoneModalVisible(true); }}
+                style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="call-outline" size={14} color={colors.primary} style={{ marginRight: 5 }} />
+                <Text style={{ color: clientPhone ? colors.text : colors.textMuted, fontSize: 13, fontWeight: '500' }}>
+                  {clientPhone || 'Telefon ekle'}
+                </Text>
+                <Ionicons name="pencil" size={13} color={colors.primary} style={{ marginLeft: 6 }} />
+              </TouchableOpacity>
             </View>
             {activePackage && (
               <View style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}>
@@ -332,6 +441,36 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
               </View>
             )}
           </View>
+        </View>
+
+        {/* Quick Communication Actions (WhatsApp, Ara, SMS) */}
+        <View style={styles.quickActionRow}>
+          <TouchableOpacity 
+            style={[styles.quickActionBtn, { backgroundColor: '#25D36618', borderColor: '#25D366' }]} 
+            onPress={handleOpenWhatsApp}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="logo-whatsapp" size={18} color="#25D366" style={{ marginRight: 6 }} />
+            <Text style={[styles.quickActionText, { color: '#25D366' }]}>WhatsApp</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.quickActionBtn, { backgroundColor: '#2196F318', borderColor: '#2196F3' }]} 
+            onPress={handleOpenPhone}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="call" size={17} color="#2196F3" style={{ marginRight: 6 }} />
+            <Text style={[styles.quickActionText, { color: '#2196F3' }]}>Ara</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.quickActionBtn, { backgroundColor: '#AB47BC18', borderColor: '#AB47BC' }]} 
+            onPress={handleOpenSMS}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="chatbubble-ellipses" size={17} color="#AB47BC" style={{ marginRight: 6 }} />
+            <Text style={[styles.quickActionText, { color: '#AB47BC' }]}>SMS</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Financial Status Card */}
@@ -354,6 +493,26 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
               <View style={styles.fMetric}>
                 <Text style={[styles.fLabel, { color: colors.textMuted }]}>Kalan Borç</Text>
                 <Text style={[styles.fValue, { color: debt > 0 ? colors.danger : colors.text }]}>{formatMoney(debt)}</Text>
+              </View>
+            </View>
+
+            {/* Session Progress Bar (PT-App Standard 6px Linear Progress) */}
+            <View style={{ marginTop: 4, marginBottom: 18 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6, alignItems: 'center' }}>
+                <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: '600' }}>Paket İlerlemesi</Text>
+                <Text style={{ color: colors.text, fontSize: 12, fontWeight: '700' }}>
+                  {activePackage.remaining_sessions} / {activePackage.total_sessions || 20} Ders Kalan
+                </Text>
+              </View>
+              <View style={{ height: 6, backgroundColor: colors.border, borderRadius: 3, overflow: 'hidden' }}>
+                <View 
+                  style={{ 
+                    height: 6, 
+                    width: `${Math.min(100, Math.max(0, ((activePackage.remaining_sessions || 0) / (activePackage.total_sessions || 20)) * 100))}%`, 
+                    backgroundColor: '#FF6B00', 
+                    borderRadius: 3 
+                  }} 
+                />
               </View>
             </View>
 
@@ -513,6 +672,70 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
             <Text style={{ color: colors.textMuted, fontSize: 13, marginBottom: 16 }}>
               Henüz atanmış bir antrenman bulunmuyor.
             </Text>
+          )}
+        </View>
+
+        {/* Beslenme & Diyet Planı Kartı */}
+        <View style={[styles.financeCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: radius.card }]}>
+          <View style={styles.financeHeader}>
+            <Ionicons name="restaurant-outline" size={20} color="#10B981" />
+            <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0, marginLeft: 8 }]}>Beslenme & Diyet Planı</Text>
+          </View>
+          
+          {clientDiet ? (
+            <View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255, 107, 0, 0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+                  <Ionicons name="flame" size={16} color="#FF6B00" />
+                  <Text style={{ color: '#FF6B00', fontSize: 13, fontWeight: '700' }}>{clientDiet.target_calories} kcal / Gün</Text>
+                </View>
+                <Text style={{ fontSize: 12, color: colors.textMuted, fontWeight: '600' }}>
+                  {clientDiet.meals?.length || 0} Saatli Öğün
+                </Text>
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                <View style={[styles.macroBadge, { backgroundColor: 'rgba(59, 130, 246, 0.12)' }]}>
+                  <Text style={[styles.macroLabel, { color: '#3B82F6' }]}>PROTEİN</Text>
+                  <Text style={[styles.macroValue, { color: '#3B82F6' }]}>{clientDiet.target_protein_g}g</Text>
+                </View>
+                <View style={[styles.macroBadge, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
+                  <Text style={[styles.macroLabel, { color: '#10B981' }]}>KARB</Text>
+                  <Text style={[styles.macroValue, { color: '#10B981' }]}>{clientDiet.target_carbs_g}g</Text>
+                </View>
+                <View style={[styles.macroBadge, { backgroundColor: 'rgba(245, 158, 11, 0.12)' }]}>
+                  <Text style={[styles.macroLabel, { color: '#F59E0B' }]}>YAĞ</Text>
+                  <Text style={[styles.macroValue, { color: '#F59E0B' }]}>{clientDiet.target_fat_g}g</Text>
+                </View>
+              </View>
+
+              {clientDiet.trainer_notes ? (
+                <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 14, fontStyle: 'italic' }}>
+                  💬 {clientDiet.trainer_notes}
+                </Text>
+              ) : null}
+
+              <TouchableOpacity
+                style={[styles.financeBtn, { backgroundColor: '#10B981', borderRadius: radius.button, marginTop: 4 }]}
+                onPress={() => setDietModalVisible(true)}
+              >
+                <Ionicons name="refresh" size={16} color="#FFF" style={{ marginRight: 6 }} />
+                <Text style={styles.financeBtnText}>Planı Değiştir / Güncelle</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View>
+              <Text style={{ color: colors.textMuted, fontSize: 13, marginBottom: 14 }}>
+                Henüz bu danışana atanmış bir beslenme planı bulunmuyor.
+              </Text>
+              <TouchableOpacity
+                style={[styles.financeBtn, { backgroundColor: '#10B981', borderRadius: radius.button }]}
+                onPress={() => setDietModalVisible(true)}
+              >
+                <Ionicons name="add" size={18} color="#FFF" style={{ marginRight: 6 }} />
+                <Text style={styles.financeBtnText}>Şablondan Diyet Ata</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
 
@@ -827,7 +1050,7 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
         </View>
       </Modal>
 
-      {/* Diet Modal */}
+      {/* Assign Diet Modal */}
       <Modal
         visible={dietModalVisible}
         animationType="slide"
@@ -840,22 +1063,77 @@ export const ClientDetailScreen = ({ route, navigation }: any) => {
             activeOpacity={1}
             onPress={() => setDietModalVisible(false)}
           />
-          <View style={[styles.modalContent, { backgroundColor: colors.card, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Beslenme Şablonu Ata</Text>
-            <ScrollView>
-              {DIET_TYPES.map(d => (
-                <TouchableOpacity key={d} style={[styles.modalOption, { borderBottomColor: colors.border }]} onPress={() => handleAssign('Beslenme', d)}>
-                  <Text style={[styles.modalOptionText, { color: colors.text }]}>{d}</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.card, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, maxHeight: '85%' }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={[styles.modalTitle, { color: colors.text, marginBottom: 0 }]}>Beslenme Şablonu Ata</Text>
+              <TouchableOpacity onPress={() => setDietModalVisible(false)}>
+                <Ionicons name="close" size={24} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+            <Text style={{ color: colors.textMuted, fontSize: 13, marginBottom: 14 }}>
+              Kütüphanenizden hazır bir makro şablonu seçip danışanın bugünkü planı olarak atayın:
+            </Text>
+
+            <ScrollView style={{ maxHeight: 300 }}>
+              {nutritionTemplates.map(tmpl => (
+                <TouchableOpacity
+                  key={tmpl.id}
+                  style={[styles.modalOption, { borderBottomColor: colors.border, paddingVertical: 14 }]}
+                  onPress={() => handleAssignNutritionTemplate(tmpl)}
+                >
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={[styles.modalOptionText, { color: colors.text, fontWeight: '700' }]}>{tmpl.title}</Text>
+                    <Text style={{ color: '#FF6B00', fontWeight: '800', fontSize: 13 }}>{tmpl.target_calories} kcal</Text>
+                  </View>
+                  <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 4 }}>
+                    🥩 {tmpl.target_protein_g}g P  •  🍚 {tmpl.target_carbs_g}g C  •  🥑 {tmpl.target_fat_g}g F  •  {tmpl.meals?.length || 0} Öğün
+                  </Text>
                 </TouchableOpacity>
               ))}
-              <Text style={[styles.customLabel, { color: colors.textMuted }]}>Veya özel isim girin:</Text>
-              <TextInput style={[styles.customInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border, borderRadius: radius.button }]} placeholder="Özel diyet..." placeholderTextColor={colors.textMuted} value={customText} onChangeText={setCustomText} />
-              <TouchableOpacity style={[styles.customSubmitBtn, { backgroundColor: colors.primary, borderRadius: radius.button }]} onPress={() => handleAssign('Beslenme', customText || 'Özel Diyet')}>
-                <Text style={{color: '#FFF', fontWeight: 'bold'}}>Kaydet</Text>
-              </TouchableOpacity>
             </ScrollView>
+
+            <TouchableOpacity
+              style={[styles.customSubmitBtn, { backgroundColor: colors.primary, borderRadius: radius.button, marginTop: 14 }]}
+              onPress={() => {
+                setDietModalVisible(false);
+                navigation.navigate('NutritionTemplates');
+              }}
+            >
+              <Text style={{ color: '#FFF', fontWeight: 'bold' }}>+ Yeni Şablon Oluştur / Kütüphane</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.closeModalBtn} onPress={() => setDietModalVisible(false)}>
-              <Text style={styles.closeModalText}>İptal</Text>
+              <Text style={styles.closeModalText}>Vazgeç</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Phone Number Modal */}
+      <Modal visible={phoneModalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card, borderTopLeftRadius: radius.card, borderTopRightRadius: radius.card }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Telefon Numarası</Text>
+            <Text style={{ color: colors.textMuted, fontSize: 13, marginBottom: 16 }}>
+              Hızlı arama, WhatsApp ve SMS iletişimi için danışanın telefon numarasını girin.
+            </Text>
+            <TextInput
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background, marginBottom: 20 }]}
+              placeholder="+90 5XX XXX XX XX"
+              placeholderTextColor={colors.textMuted}
+              value={tempPhone}
+              onChangeText={setTempPhone}
+              keyboardType="phone-pad"
+              autoFocus
+            />
+            <TouchableOpacity
+              style={[styles.customSubmitBtn, { backgroundColor: colors.primary, borderRadius: radius.button }]}
+              onPress={handleSavePhone}
+            >
+              <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Kaydet</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.closeModalBtn} onPress={() => setPhoneModalVisible(false)}>
+              <Text style={styles.closeModalText}>Vazgeç</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -873,6 +1151,19 @@ const styles = StyleSheet.create({
   clientGoal: { fontSize: 14, fontWeight: '500' },
   statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
   statusText: { fontSize: 12, fontWeight: '700' },
+  
+  // Quick Actions (WhatsApp, Ara, SMS)
+  quickActionRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  quickActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  quickActionText: { fontSize: 13, fontWeight: '700' },
   
   sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12 },
   
@@ -930,5 +1221,22 @@ const styles = StyleSheet.create({
   customInput: { borderWidth: 1, padding: 14, marginBottom: 4 },
   customSubmitBtn: { padding: 14, alignItems: 'center', marginBottom: 10 },
   closeModalBtn: { paddingVertical: 16, alignItems: 'center' },
-  closeModalText: { color: '#EF4444', fontWeight: 'bold', fontSize: 16 }
+  closeModalText: { color: '#EF4444', fontWeight: 'bold', fontSize: 16 },
+
+  macroBadge: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  macroLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  macroValue: {
+    fontSize: 15,
+    fontWeight: '800',
+    marginTop: 2,
+  },
 });

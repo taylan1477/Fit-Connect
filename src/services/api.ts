@@ -15,10 +15,10 @@ import { toISODate } from '../utils/date';
 
 // Mock in-memory state for offline / zero-latency local testing
 let mockProfiles: UserProfile[] = [
-  { id: 'trainer-1', email: 'trainer@fitconnect.com', full_name: 'Serhat Hoca', role: 'trainer', created_at: '2026-01-01T00:00:00Z' },
-  { id: '1', email: 'john@example.com', full_name: 'John Doe', role: 'client', trainer_id: 'trainer-1', created_at: '2026-01-01T00:00:00Z' },
-  { id: '2', email: 'jane@example.com', full_name: 'Jane Smith', role: 'client', trainer_id: 'trainer-1', created_at: '2026-01-01T00:00:00Z' },
-  { id: '3', email: 'bob@example.com', full_name: 'Bob Johnson', role: 'client', trainer_id: 'trainer-1', created_at: '2026-01-01T00:00:00Z' },
+  { id: 'trainer-1', email: 'trainer@fitconnect.com', full_name: 'Serhat Hoca', role: 'trainer', phone: '+905301234567', created_at: '2026-01-01T00:00:00Z' },
+  { id: '1', email: 'john@example.com', full_name: 'John Doe', role: 'client', trainer_id: 'trainer-1', phone: '+905321112233', created_at: '2026-01-01T00:00:00Z' },
+  { id: '2', email: 'jane@example.com', full_name: 'Jane Smith', role: 'client', trainer_id: 'trainer-1', phone: '+905332223344', created_at: '2026-01-01T00:00:00Z' },
+  { id: '3', email: 'bob@example.com', full_name: 'Bob Johnson', role: 'client', trainer_id: 'trainer-1', phone: '+905353334455', created_at: '2026-01-01T00:00:00Z' },
 ];
 
 let mockPackages: Package[] = [
@@ -249,6 +249,77 @@ let mockWorkoutTemplates: WorkoutTemplate[] = [
 
 let mockWorkouts: Workout[] = [];
 
+let mockNutritionTemplates: NutritionTemplate[] = [
+  {
+    id: 'ntmpl-1',
+    trainer_id: 'trainer-1',
+    title: 'High Protein Definasyon (1950 kcal)',
+    target_calories: 1950,
+    target_protein_g: 180,
+    target_carbs_g: 160,
+    target_fat_g: 50,
+    meals: [
+      { id: 'm-1', time: '08:30', name: 'Kahvaltı', desc: '4 yumurta beyazı, 1 tam yumurta, 60g yulaf, 1 muz', calories: 480, is_completed: false },
+      { id: 'm-2', time: '12:30', name: 'Öğle Yemeği', desc: '200g ızgara tavuk göğsü, 150g basmati pirinç, yeşil salata (1 tatlı kaşığı zeytinyağı)', calories: 580, is_completed: false },
+      { id: 'm-3', time: '16:00', name: 'Ara Öğün', desc: '1 ölçek Whey protein, 1 adet yeşil elma, 15 adet çiğ badem', calories: 310, is_completed: false },
+      { id: 'm-4', time: '19:30', name: 'Akşam Yemeği', desc: '200g fırın somon veya hindi göğsü, haşlanmış brokoli, 100g tatlı patates', calories: 580, is_completed: false },
+    ],
+    created_at: '2026-09-01T10:00:00Z',
+  },
+  {
+    id: 'ntmpl-2',
+    trainer_id: 'trainer-1',
+    title: 'Clean Bulk & Hipertrofi (2800 kcal)',
+    target_calories: 2800,
+    target_protein_g: 190,
+    target_carbs_g: 350,
+    target_fat_g: 70,
+    meals: [
+      { id: 'm-5', time: '08:00', name: 'Kahvaltı', desc: '4 tam yumurta, 100g yulaf ezmesi, 1 yemek kaşığı fıstık ezmesi, 1 bardak süt', calories: 750, is_completed: false },
+      { id: 'm-6', time: '12:00', name: 'Öğle Yemeği', desc: '220g ızgara dana biftek / kıyma, 250g makarna / pirinç, mevsim salatası', calories: 820, is_completed: false },
+      { id: 'm-7', time: '16:00', name: 'Ara Öğün', desc: '2 dilim tam buğday ekmeği, 60g lor peyniri, 1 muz, 1 ölçek protein tozu', calories: 480, is_completed: false },
+      { id: 'm-8', time: '20:00', name: 'Akşam Yemeği', desc: '220g tavuk but veya hindi, 200g fırın patates, zeytinyağlı sebzeler', calories: 750, is_completed: false },
+    ],
+    created_at: '2026-09-02T10:00:00Z',
+  },
+  {
+    id: 'ntmpl-3',
+    trainer_id: 'trainer-1',
+    title: 'Ketojenik Yağ Yakımı (2100 kcal)',
+    target_calories: 2100,
+    target_protein_g: 160,
+    target_carbs_g: 30,
+    target_fat_g: 145,
+    meals: [
+      { id: 'm-9', time: '09:00', name: 'Kahvaltı (Keto)', desc: '3 tam tereyağlı yumurta, 1/2 avokado, 50g beyaz peynir, 5 adet ceviz', calories: 650, is_completed: false },
+      { id: 'm-10', time: '14:00', name: 'Öğle Yemeği', desc: '200g somon fileto, zeytinyağlı ve avokadolu yeşil salata', calories: 720, is_completed: false },
+      { id: 'm-11', time: '19:30', name: 'Akşam Yemeği', desc: '200g antrikot / dana pirzola, tereyağında sotelenmiş mantar ve ıspanak', calories: 730, is_completed: false },
+    ],
+    created_at: '2026-09-03T10:00:00Z',
+  },
+];
+
+let mockDiets: Diet[] = [
+  {
+    id: 'diet-1',
+    client_id: '1',
+    trainer_id: 'trainer-1',
+    date: new Date().toISOString().split('T')[0],
+    target_calories: 1950,
+    target_protein_g: 180,
+    target_carbs_g: 160,
+    target_fat_g: 50,
+    trainer_notes: 'Günde en az 3.5 litre su tüketmeyi unutma. Antrenmandan 2 saat önce ara öğününü bitirmiş ol.',
+    meals: [
+      { id: 'd-1', time: '08:30', name: 'Kahvaltı', desc: '4 yumurta beyazı, 1 tam yumurta, 60g yulaf, 1 muz', calories: 480, is_completed: true },
+      { id: 'd-2', time: '12:30', name: 'Öğle Yemeği', desc: '200g ızgara tavuk göğsü, 150g basmati pirinç, yeşil salata (1 tatlı kaşığı zeytinyağı)', calories: 580, is_completed: false },
+      { id: 'd-3', time: '16:00', name: 'Ara Öğün', desc: '1 ölçek Whey protein, 1 adet yeşil elma, 15 adet çiğ badem', calories: 310, is_completed: false },
+      { id: 'd-4', time: '19:30', name: 'Akşam Yemeği', desc: '200g fırın somon veya hindi göğsü, haşlanmış brokoli, 100g tatlı patates', calories: 580, is_completed: false },
+    ],
+    created_at: new Date().toISOString(),
+  },
+];
+
 export const api = {
   // Profiles
   async getProfile(id: string): Promise<UserProfile | null> {
@@ -295,6 +366,36 @@ export const api = {
     const { data, error } = await query;
     if (error) throw error;
     return data || [];
+  },
+
+  async updateClientPhone(clientId: string, phone: string): Promise<UserProfile> {
+    if (!isSupabaseConfigured) {
+      const p = mockProfiles.find(x => x.id === clientId);
+      if (p) {
+        p.phone = phone;
+        return { ...p };
+      }
+      throw new Error('Danışan bulunamadı.');
+    }
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({ phone })
+      .eq('id', clientId)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async getClientsWithPackages(trainerId?: string): Promise<{ client: UserProfile; package: Package | null }[]> {
+    const clients = await this.getClients(trainerId);
+    const results = await Promise.all(
+      clients.map(async (client) => {
+        const pkg = await this.getClientPackage(client.id);
+        return { client, package: pkg };
+      })
+    );
+    return results;
   },
 
   // Packages & Financials (PT-App Legacy Engine)
@@ -747,7 +848,7 @@ export const api = {
   // Nutrition Templates & Diet
   async getNutritionTemplates(trainerId: string): Promise<NutritionTemplate[]> {
     if (!isSupabaseConfigured) {
-      return [];
+      return mockNutritionTemplates.filter(t => t.trainer_id === trainerId || !t.trainer_id || t.trainer_id === 'trainer-1');
     }
     const { data, error } = await supabase
       .from('nutrition_templates')
@@ -758,9 +859,73 @@ export const api = {
     return data || [];
   },
 
+  async createNutritionTemplate(template: Omit<NutritionTemplate, 'id' | 'created_at'>): Promise<NutritionTemplate> {
+    if (!isSupabaseConfigured) {
+      const newTemplate: NutritionTemplate = {
+        id: 'ntmpl-' + Date.now(),
+        created_at: new Date().toISOString(),
+        ...template,
+      };
+      mockNutritionTemplates.unshift(newTemplate);
+      return newTemplate;
+    }
+    const { data, error } = await supabase
+      .from('nutrition_templates')
+      .insert(template)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteNutritionTemplate(templateId: string): Promise<void> {
+    if (!isSupabaseConfigured) {
+      mockNutritionTemplates = mockNutritionTemplates.filter(t => t.id !== templateId);
+      return;
+    }
+    const { error } = await supabase
+      .from('nutrition_templates')
+      .delete()
+      .eq('id', templateId);
+    if (error) throw error;
+  },
+
+  async assignNutritionPlan(clientId: string, dietPlan: Omit<Diet, 'id' | 'client_id' | 'created_at'>): Promise<Diet> {
+    const normalizedDate = toISODate(dietPlan.date || new Date().toISOString().split('T')[0]);
+    if (!isSupabaseConfigured) {
+      const newDiet: Diet = {
+        id: 'diet-' + Date.now(),
+        client_id: clientId,
+        created_at: new Date().toISOString(),
+        ...dietPlan,
+        date: normalizedDate,
+      };
+      const existingIdx = mockDiets.findIndex(d => d.client_id === clientId);
+      if (existingIdx !== -1) {
+        mockDiets[existingIdx] = newDiet;
+      } else {
+        mockDiets.unshift(newDiet);
+      }
+      return newDiet;
+    }
+
+    const { data, error } = await supabase
+      .from('diets')
+      .insert({
+        ...dietPlan,
+        client_id: clientId,
+        date: normalizedDate,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
   async getLatestDiet(clientId: string): Promise<Diet | null> {
     if (!isSupabaseConfigured) {
-      return null;
+      const found = mockDiets.find(d => d.client_id === clientId);
+      return found || null;
     }
     const { data, error } = await supabase
       .from('diets')
@@ -769,6 +934,44 @@ export const api = {
       .order('date', { ascending: false })
       .limit(1)
       .maybeSingle();
+    if (error) throw error;
+    return data;
+  },
+
+  async toggleMealCompleted(dietId: string, mealIndex: number, isCompleted: boolean, photoUri?: string): Promise<Diet | null> {
+    if (!isSupabaseConfigured) {
+      const diet = mockDiets.find(d => d.id === dietId || d.client_id === dietId);
+      if (diet && diet.meals && diet.meals[mealIndex]) {
+        diet.meals[mealIndex].is_completed = isCompleted;
+        if (photoUri !== undefined) {
+          diet.meals[mealIndex].photo_uri = photoUri;
+        }
+        return { ...diet };
+      }
+      return null;
+    }
+
+    const { data: currentDiet, error: fetchErr } = await supabase
+      .from('diets')
+      .select('*')
+      .eq('id', dietId)
+      .single();
+    if (fetchErr) throw fetchErr;
+
+    const updatedMeals = [...(currentDiet.meals || [])];
+    if (updatedMeals[mealIndex]) {
+      updatedMeals[mealIndex].is_completed = isCompleted;
+      if (photoUri !== undefined) {
+        updatedMeals[mealIndex].photo_uri = photoUri;
+      }
+    }
+
+    const { data, error } = await supabase
+      .from('diets')
+      .update({ meals: updatedMeals })
+      .eq('id', dietId)
+      .select()
+      .single();
     if (error) throw error;
     return data;
   },

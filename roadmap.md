@@ -14,10 +14,44 @@ Bu belge, **Fit-Connect (React Native + Expo + Supabase)** projesini **PT-App (L
 
 ---
 
+## 🌐 Online Backend & Kayıt Servisleri Mimarisi (Cloud Service & Auth)
+
+Projenin online servis altyapısı, harici ve bakım gerektiren bir API sunucusu (Node/Express/Django vb.) kurup sunucu maliyeti ve sunucu yönetimiyle vakit kaybetmek yerine; modern, güvenli ve Google Play Store ölçeğinde **Supabase Cloud (BaaS)** mimarisiyle uçtan uca çalışacak şekilde tasarlanmıştır.
+
+### 1. Online Kayıt ve Kimlik Doğrulama (Auth) Servisi
+
+- **Kullanıcı Kaydı (`supabase.auth.signUp`):**
+  - **Antrenör Kaydı:** E-posta, şifre ve ad-soyad ile kayıt olunur. Rolü `trainer` olarak atanır.
+  - **Danışan Kaydı:** Danışan bağımsız kayıt olabilir veya Antrenör kendi panelinden danışanı e-posta ile davet edebilir.
+- **Otomatik Profil Oluşturma (PostgreSQL Trigger):**
+  - Kullanıcı Auth servisinde kayıt olduğu anda `public.handle_new_user()` trigger'ı otomatik tetiklenerek `public.profiles` tablosuna `id`, `email`, `role`, `full_name` kaydını oluşturur.
+- **Antrenör - Danışan Eşleşmesi (Online Bağlantı):**
+  - Danışanın profili oluşturulurken veya profil ayarlarından antrenörün e-posta/ID'si `trainer_id` olarak bağlanır.
+  - **RLS (Row Level Security):** Antrenör sadece kendi danışanlarının verilerini görebilir, danışan ise sadece kendi ölçüm, paket ve antrenmanlarını okuyabilir.
+
+### 2. Online Servisi Canlıya Alma Adımları (Deployment Checklist)
+
+1. **Supabase Projesi Açma:** [supabase.com](https://supabase.com) üzerinden ücretsiz yeni bir PostgreSQL/Auth projesi açılır (Bölge: Frankfurt / Central EU tavsiye edilir).
+2. **SQL Şemasını Çalıştırma:** Projede hazır olan `supabase/schema.sql` dosyasının içeriği Supabase Dashboard -> **SQL Editor** ekranına yapıştırılarak tek tıkla (`RUN`) çalıştırılır. (Tüm 11 tablo, indeksler, RLS güvenlik kuralları ve Auth trigger'ı saniyeler içinde kurulur).
+3. **Storage Bucket'larını Oluşturma:** Supabase Dashboard -> **Storage** sekmesinde 2 adet bucket açılır:
+   - `tanita_reports` (Klinik PDF analizleri için)
+   - `progress_photos` (Danışan haftalık gelişim fotoğrafları için)
+4. **Ortam Değişkenlerini Tanımlama (.env):**
+   - Projenin kök dizininde `.env` dosyası oluşturulup Supabase API anahtarları eklenir:
+
+     ```env
+     EXPO_PUBLIC_SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
+     EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6...
+     ```
+
+5. **Canlıya Geçiş Testi:** Uygulama başlatıldığında `isSupabaseConfigured` bayrağı otomatik `true` olur; mock veriler devre dışı kalarak uygulama tamamen canlı bulut veritabanıyla konuşmaya başlar.
+
+---
+
 ## 📅 10 Günlük Detaylı Yol Haritası
 
 ### 🔹 Gün 1: Temel Mimari, Veritabanı & Tasarım Sistemi (Backend & Theme)
-- **Supabase Şeması:** `profiles`, `packages`, `client_metrics` (9 bölge), `tanita_reports`, `workout_templates`, `nutrition_templates` tablolarının ve RLS politikalarının oluşturulması.
+- **Supabase Şeması:** `profiles`, `packages`, `client_metrics` (9 bölge), `tanita_reports`, `workout_templates`, `nutrition_templates` tablolarının ve RLS politikalarının oluşturulması (`supabase/schema.sql`).
 - **Tasarım Tokenları:** PT-App Legacy renk paleti (`#121212`, `#1E1E1E`, `#FF6B00`, `#4CAF50`, `#FFA000`, `#E53935`) ve yuvarlatma kurallarının `ThemeContext` içine entegre edilmesi.
 - **Kimlik Doğrulama (Auth):** Supabase Auth entegrasyonu, Antrenör vs. Danışan rol ayrımı ve otomatik yönlendirme.
 - **Çıktı:** Stabil veritabanı şeması, güncel TypeScript modelleri, koyu tema altyapısı ve çalışan giriş ekranı.

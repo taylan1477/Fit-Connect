@@ -49,7 +49,7 @@ export const DailyWorkoutScreen = () => {
   const loadWorkouts = async () => {
     try {
       setLoading(true);
-      let clientId = 'client-1';
+      let clientId = '1';
       if (isSupabaseConfigured) {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) clientId = user.id;
@@ -130,12 +130,32 @@ export const DailyWorkoutScreen = () => {
 
   if (!activeWorkout) {
     return (
-      <View style={[styles.mainContainer, { backgroundColor: colors.background, paddingTop: insets.top, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 }]}>
-        <View style={{ width: 120, height: 120, borderRadius: 60, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', justifyContent: 'center', alignItems: 'center', marginBottom: 24 }}>
-          <Ionicons name="cafe-outline" size={64} color={colors.primary} />
+      <View style={[styles.mainContainer, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+        <View style={styles.restDayContainer}>
+          <View style={[styles.restDayCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[styles.restDayIconBox, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : '#E8F5E9' }]}>
+              <Ionicons name="leaf-outline" size={56} color="#10B981" />
+            </View>
+            <Text style={[styles.restDayTitle, { color: colors.text }]}>Dinlenme Günü</Text>
+            <Text style={[styles.restDayDesc, { color: colors.textMuted }]}>
+              Bugün için atanmış bir antrenman programınız bulunmuyor. Kaslarınızı dinlendirin, bol su için ve beslenmenize dikkat edin!
+            </Text>
+            <View style={styles.restDayTips}>
+              <View style={styles.tipRow}>
+                <Ionicons name="water-outline" size={20} color="#3B82F6" />
+                <Text style={[styles.tipText, { color: colors.text }]}>Bol sıvı tüketin</Text>
+              </View>
+              <View style={styles.tipRow}>
+                <Ionicons name="restaurant-outline" size={20} color="#F59E0B" />
+                <Text style={[styles.tipText, { color: colors.text }]}>Makrolarınıza sadık kalın</Text>
+              </View>
+              <View style={styles.tipRow}>
+                <Ionicons name="moon-outline" size={20} color="#8B5CF6" />
+                <Text style={[styles.tipText, { color: colors.text }]}>Kaliteli uyku uyuyun</Text>
+              </View>
+            </View>
+          </View>
         </View>
-        <Text style={[styles.title, { color: colors.text, textAlign: 'center', marginBottom: 12 }]}>Dinlenme Günü</Text>
-        <Text style={[styles.subtitle, { color: colors.textMuted, textAlign: 'center', lineHeight: 24 }]}>Bugün için atanmış bir antrenman programınız bulunmuyor. Kaslarınızı dinlendirin ve beslenmenize dikkat edin!</Text>
       </View>
     );
   }
@@ -279,5 +299,13 @@ const styles = StyleSheet.create({
   checkbox: { width: 28, height: 28, borderRadius: 8, borderWidth: 2, borderColor: '#D1D5DB', justifyContent: 'center', alignItems: 'center' },
   checkboxActive: { backgroundColor: '#4CAF50', borderColor: '#4CAF50' },
   finishButton: { padding: 16, alignItems: 'center', marginTop: 10 },
-  finishButtonText: { color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' }
+  finishButtonText: { color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' },
+  restDayContainer: { flex: 1, padding: 20, justifyContent: 'center' },
+  restDayCard: { padding: 30, borderRadius: 24, borderWidth: 1, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 20, elevation: 5 },
+  restDayIconBox: { width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
+  restDayTitle: { fontSize: 28, fontWeight: 'bold', marginBottom: 12, textAlign: 'center' },
+  restDayDesc: { fontSize: 16, textAlign: 'center', lineHeight: 24, marginBottom: 30 },
+  restDayTips: { width: '100%', gap: 16 },
+  tipRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12 },
+  tipText: { fontSize: 16, fontWeight: '500' }
 });

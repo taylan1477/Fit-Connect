@@ -132,6 +132,9 @@ export interface MealItem {
   time: string; // örn. '08:30'
   name: string; // örn. 'Sabah Kahvaltısı'
   desc: string; // örn. '4 yumurta beyazı, 2 tam yumurta, 60g yulaf'
+  calories?: number; // örn. 450
+  is_completed?: boolean;
+  photo_uri?: string;
 }
 
 export interface NutritionTemplate {

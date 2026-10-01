@@ -130,14 +130,25 @@ export const TrainerDashboard = ({ navigation }: any) => {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity 
-        style={[styles.fullWidthActionButton, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: radius.card }]} 
-        onPress={() => navigation.navigate('WorkoutTemplates')}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="barbell" size={28} color={colors.primary} style={styles.actionIcon} />
-        <Text style={[styles.actionButtonText, { color: colors.text }]}>Şablon Kütüphanesi</Text>
-      </TouchableOpacity>
+      <View style={[styles.actionsContainer, { marginTop: 12 }]}>
+        <TouchableOpacity 
+          style={[styles.actionButton, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: radius.card }]} 
+          onPress={() => navigation.navigate('WorkoutTemplates')}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="barbell" size={28} color={colors.primary} style={styles.actionIcon} />
+          <Text style={[styles.actionButtonText, { color: colors.text }]}>Antrenman Şablonları</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.actionButton, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: radius.card }]} 
+          onPress={() => navigation.navigate('NutritionTemplates')}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="restaurant" size={28} color="#10B981" style={styles.actionIcon} />
+          <Text style={[styles.actionButtonText, { color: colors.text }]}>Beslenme Şablonları</Text>
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 };

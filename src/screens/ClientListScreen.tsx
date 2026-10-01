@@ -8,26 +8,35 @@ import {
   TextInput,
   ActivityIndicator,
   RefreshControl,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { api } from '../services/api';
-import { UserProfile } from '../types';
+import { UserProfile, Package } from '../types';
+
+interface ClientItemData {
+  client: UserProfile;
+  package: Package | null;
+}
+
+const STATUS_FILTERS = ['Tümü', 'Aktif', 'Az Kaldı', 'Bitti'];
 
 export const ClientListScreen = ({ navigation }: any) => {
-  const { colors, radius, isDark } = useTheme();
+  const { colors, radius, getStatusColor } = useTheme();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [clients, setClients] = useState<UserProfile[]>([]);
+  const [clientData, setClientData] = useState<ClientItemData[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState('Tümü');
 
   const fetchClients = async () => {
     try {
-      const data = await api.getClients();
-      setClients(data);
+      const data = await api.getClientsWithPackages();
+      setClientData(data);
     } catch (error) {
-      console.warn('Error fetching clients:', error);
+      console.warn('Error fetching clients with packages:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -43,10 +52,23 @@ export const ClientListScreen = ({ navigation }: any) => {
     fetchClients();
   };
 
-  const filteredClients = clients.filter(c => {
+  const filteredClients = clientData.filter(item => {
+    const c = item.client;
     const nameMatch = (c.full_name || '').toLowerCase().includes(searchQuery.toLowerCase());
     const emailMatch = (c.email || '').toLowerCase().includes(searchQuery.toLowerCase());
-    return nameMatch || emailMatch;
+    const phoneMatch = (c.phone || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = nameMatch || emailMatch || phoneMatch;
+
+    if (!matchesSearch) return false;
+
+    if (activeFilter === 'Tümü') return true;
+
+    const remaining = item.package ? item.package.remaining_sessions : -1;
+    if (activeFilter === 'Aktif') return remaining > 3;
+    if (activeFilter === 'Az Kaldı') return remaining > 0 && remaining <= 3;
+    if (activeFilter === 'Bitti') return remaining === 0;
+
+    return true;
   });
 
   const getInitials = (name?: string) => {
@@ -58,8 +80,17 @@ export const ClientListScreen = ({ navigation }: any) => {
     return name.slice(0, 2).toUpperCase();
   };
 
-  const renderClientItem = ({ item }: { item: UserProfile }) => {
-    const initials = getInitials(item.full_name);
+  const renderClientItem = ({ item }: { item: ClientItemData }) => {
+    const { client, package: pkg } = item;
+    const initials = getInitials(client.full_name);
+    const hasPackage = Boolean(pkg);
+    const totalSessions = pkg?.total_sessions || 20;
+    const remainingSessions = pkg?.remaining_sessions ?? 0;
+    const completedSessions = Math.max(0, totalSessions - remainingSessions);
+    const progressPercent = totalSessions > 0 ? Math.min(100, Math.round((completedSessions / totalSessions) * 100)) : 0;
+    const statusInfo = hasPackage
+      ? getStatusColor(remainingSessions)
+      : { color: colors.textMuted, label: 'Paketsiz', bg: 'rgba(158, 158, 158, 0.15)' };
 
     return (
       <TouchableOpacity
@@ -71,34 +102,73 @@ export const ClientListScreen = ({ navigation }: any) => {
             borderRadius: radius.card,
           },
         ]}
-        onPress={() => navigation.navigate('ClientDetail', { client: item })}
+        onPress={() => navigation.navigate('ClientDetail', { client })}
         activeOpacity={0.8}
       >
-        <View style={styles.cardLeft}>
-          <View
-            style={[
-              styles.avatarContainer,
-              {
-                backgroundColor: colors.primaryGlow,
-                borderColor: colors.primary,
-              },
-            ]}
-          >
-            <Text style={[styles.avatarText, { color: colors.primary }]}>{initials}</Text>
+        {/* Top Section: Avatar, Info, Status Badge */}
+        <View style={styles.cardTopRow}>
+          <View style={styles.cardLeft}>
+            <View
+              style={[
+                styles.avatarContainer,
+                {
+                  backgroundColor: colors.primaryGlow,
+                  borderColor: colors.primary,
+                },
+              ]}
+            >
+              <Text style={[styles.avatarText, { color: colors.primary }]}>{initials}</Text>
+            </View>
+            <View style={styles.infoContainer}>
+              <Text style={[styles.clientName, { color: colors.text }]}>
+                {client.full_name || 'Danışan'}
+              </Text>
+              <Text style={[styles.clientContact, { color: colors.textMuted }]} numberOfLines={1}>
+                {client.phone || client.email}
+              </Text>
+            </View>
           </View>
-          <View style={styles.infoContainer}>
-            <Text style={[styles.clientName, { color: colors.text }]}>
-              {item.full_name || 'Danışan'}
-            </Text>
-            <Text style={[styles.clientGoal, { color: colors.textMuted }]} numberOfLines={1}>
-              {item.email || 'Aktif Danışan'}
+
+          <View style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}>
+            <View style={[styles.statusDot, { backgroundColor: statusInfo.color }]} />
+            <Text style={[styles.statusText, { color: statusInfo.color }]}>
+              {statusInfo.label}
             </Text>
           </View>
         </View>
 
-        <View style={styles.cardRight}>
-          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-        </View>
+        {/* Bottom Section: Sessions Counter & 6px Linear Progress Bar */}
+        {hasPackage ? (
+          <View style={styles.progressSection}>
+            <View style={styles.progressLabelRow}>
+              <Text style={[styles.sessionText, { color: colors.textMuted }]}>
+                Kalan: <Text style={{ color: colors.text, fontWeight: '700' }}>{remainingSessions}</Text> / {totalSessions} Seans
+              </Text>
+              <Text style={[styles.percentText, { color: colors.primary }]}>
+                %{progressPercent}
+              </Text>
+            </View>
+
+            {/* PT-App 6px Linear Progress Bar */}
+            <View style={[styles.progressBarBackground, { backgroundColor: colors.border }]}>
+              <View
+                style={[
+                  styles.progressBarFill,
+                  {
+                    width: `${progressPercent}%`,
+                    backgroundColor: colors.primary,
+                  },
+                ]}
+              />
+            </View>
+          </View>
+        ) : (
+          <View style={styles.noPackageRow}>
+            <Text style={[styles.noPackageText, { color: colors.textMuted }]}>
+              Aktif seans paketi tanımlanmadı
+            </Text>
+          </View>
+        )}
       </TouchableOpacity>
     );
   };
@@ -127,7 +197,7 @@ export const ClientListScreen = ({ navigation }: any) => {
         <Ionicons name="search" size={20} color={colors.textMuted} style={styles.searchIcon} />
         <TextInput
           style={[styles.searchInput, { color: colors.text }]}
-          placeholder="Danışan veya e-posta ara..."
+          placeholder="İsim, e-posta veya telefon ile ara..."
           placeholderTextColor={colors.textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -139,16 +209,50 @@ export const ClientListScreen = ({ navigation }: any) => {
         )}
       </View>
 
+      {/* Status Filter Pills */}
+      <View style={styles.filterWrapper}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+          {STATUS_FILTERS.map((filter) => {
+            const isSelected = activeFilter === filter;
+            return (
+              <TouchableOpacity
+                key={filter}
+                style={[
+                  styles.filterPill,
+                  {
+                    backgroundColor: isSelected ? colors.primary : colors.card,
+                    borderColor: isSelected ? colors.primary : colors.border,
+                  },
+                ]}
+                onPress={() => setActiveFilter(filter)}
+              >
+                <Text
+                  style={[
+                    styles.filterText,
+                    {
+                      color: isSelected ? '#FFFFFF' : colors.textMuted,
+                      fontWeight: isSelected ? '700' : '500',
+                    },
+                  ]}
+                >
+                  {filter}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
       {/* Header Count */}
       <View style={styles.listHeader}>
         <Text style={[styles.listHeaderTitle, { color: colors.textMuted }]}>
-          Kayıtlı Danışanlar ({filteredClients.length})
+          Danışanlar ({filteredClients.length})
         </Text>
       </View>
 
       <FlatList
         data={filteredClients}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.client.id}
         renderItem={renderClientItem}
         contentContainerStyle={styles.listContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
@@ -158,7 +262,9 @@ export const ClientListScreen = ({ navigation }: any) => {
             <Ionicons name="people-outline" size={48} color={colors.textMuted} style={{ marginBottom: 12 }} />
             <Text style={[styles.emptyText, { color: colors.text }]}>Danışan bulunamadı</Text>
             <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>
-              Arama kriterinize uygun danışan kaydı mevcut değil.
+              {activeFilter === 'Tümü'
+                ? 'Arama kriterinize uygun danışan kaydı mevcut değil.'
+                : `"${activeFilter}" durumunda danışan kaydı bulunmuyor.`}
             </Text>
           </View>
         }
@@ -184,7 +290,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   searchIcon: {
     marginRight: 10,
@@ -193,6 +299,21 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     padding: 0,
+  },
+  filterWrapper: {
+    marginBottom: 16,
+  },
+  filterScroll: {
+    gap: 8,
+  },
+  filterPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  filterText: {
+    fontSize: 13,
   },
   listHeader: {
     flexDirection: 'row',
@@ -210,12 +331,14 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   clientCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     padding: 16,
     borderWidth: 1,
     marginBottom: 12,
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   cardLeft: {
     flexDirection: 'row',
@@ -223,9 +346,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   avatarContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
@@ -241,13 +364,63 @@ const styles = StyleSheet.create({
   clientName: {
     fontSize: 16,
     fontWeight: '700',
-    marginBottom: 3,
+    marginBottom: 2,
   },
-  clientGoal: {
+  clientContact: {
     fontSize: 13,
   },
-  cardRight: {
-    marginLeft: 12,
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    gap: 5,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  progressSection: {
+    marginTop: 14,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.06)',
+  },
+  progressLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  sessionText: {
+    fontSize: 12,
+  },
+  percentText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  progressBarBackground: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  noPackageRow: {
+    marginTop: 10,
+    paddingTop: 8,
+  },
+  noPackageText: {
+    fontSize: 12,
+    fontStyle: 'italic',
   },
   emptyContainer: {
     alignItems: 'center',
