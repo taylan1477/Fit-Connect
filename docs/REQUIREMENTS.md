@@ -1,11 +1,14 @@
-# SYSTEM INSTRUCTION FOR JARVIS SWARM
-You are an autonomous AI development swarm orchestrating the creation of a Personal Trainer (PT) Mobile Application MVP. 
-Your goal is to parse this document and execute the development phases sequentially. 
+# SYSTEM INSTRUCTION FOR AGENT
+
+You are an autonomous AI development agent orchestrating the creation of a Personal Trainer (PT) Mobile Application MVP.
+Your goal is to parse this document and execute the development phases sequentially.
 
 ## 1. PROJECT OVERVIEW
+
 **Name:** PT-Connect (MVP)
 **Description:** A mobile application serving two user roles: Trainer and Client. It handles onboarding metrics, workout/diet assignments, progress tracking (photos), calendar scheduling, and QR-code-based session deduction.
 **Tech Stack Required:**
+
 - **Frontend/Mobile:** React Native (Expo) with TypeScript, NativeWind (Tailwind).
 - **Backend/Database:** Supabase (PostgreSQL for data, Auth for authentication, Storage for images).
 - **Architecture:** Client-Server, single repository, role-based conditional rendering.
@@ -13,6 +16,7 @@ Your goal is to parse this document and execute the development phases sequentia
 ---
 
 ## 2. DATABASE SCHEMA (Supabase PostgreSQL)
+
 *Agent-Core must initialize these tables and RLS (Row Level Security) policies first.*
 
 1. **Users:** `id` (uuid), `email`, `role` (enum: 'trainer', 'client'), `full_name`, `created_at`.
@@ -27,12 +31,15 @@ Your goal is to parse this document and execute the development phases sequentia
 ---
 
 ## 3. UI/UX SCREENS & ROUTING
+
 *Agent-UI must create these screens using functional components and React Navigation.*
 
 ### Auth Stack
+
 - `LoginScreen`: Email/password login. Routes to Trainer/Client Hub based on role.
 
 ### Trainer Hub (Role: Trainer)
+
 - `TrainerDashboard`: Overview of today's appointments and pending client reviews.
 - `ClientListScreen`: List of assigned clients.
 - `ClientDetailScreen`: View metrics, assign workouts/diets, view progress photos.
@@ -41,6 +48,7 @@ Your goal is to parse this document and execute the development phases sequentia
 - `QRGeneratorScreen`: Generates a unique, time-sensitive QR code containing `{ trainer_id, package_id, timestamp }` for the current session.
 
 ### Client Hub (Role: Client)
+
 - `ClientDashboard`: Summary of today's tasks (Workout, Diet).
 - `MyMetricsScreen`: View historical Tanita/PAR-Q data (with PDF export logic using `expo-print`).
 - `DailyWorkoutScreen`: Checklist UI to mark `is_completed` for each assigned exercise.
@@ -54,6 +62,7 @@ Your goal is to parse this document and execute the development phases sequentia
 ## 4. CORE BUSINESS LOGIC (CRITICAL PATHS)
 
 **Feature A: QR Session Deduction**
+
 1. Trainer opens `QRGeneratorScreen`. App creates a secure JSON payload.
 2. Client opens `QRScannerScreen` and scans the code.
 3. Client app sends API request to Backend: `decrementSession(client_id, trainer_id)`.
@@ -61,34 +70,40 @@ Your goal is to parse this document and execute the development phases sequentia
 5. If valid, decrement by 1, return success. Both screens update via real-time subscription.
 
 **Feature B: Progress & File Uploads**
+
 - Use `expo-image-picker` for capturing meal photos and physical progress.
 - Images must be uploaded to Supabase Storage buckets (`meals`, `progress_photos`) before saving the URL to the PostgreSQL database.
 
 ---
 
-## 5. SWARM EXECUTION PLAN
+## 5. AGENT EXECUTION PLAN
 
 **Phase 1: Project Setup (Agent-Core)**
+
 - Initialize React Native Expo app.
 - Install dependencies: `@supabase/supabase-js`, `react-navigation`, `nativewind`, `expo-camera`, `expo-image-picker`, `react-native-qrcode-svg`.
 - Set up Supabase client utility (`src/utils/supabase.ts`).
 
 **Phase 2: Data Access Layer (Agent-Core)**
+
 - Generate types based on the Database Schema.
 - Create API service functions (`src/services/`) for CRUD operations on all tables.
 
 **Phase 3: UI Implementation (Agent-UI)**
+
 - Build layout wrappers and navigation stacks (`AppNavigator.tsx`).
 - Implement Auth screens.
 - Implement Trainer Hub screens with mock data first, then wire to services.
 - Implement Client Hub screens with mock data first, then wire to services.
 
 **Phase 4: Hardware Integration (Agent-UI & Agent-Core)**
+
 - Implement `expo-camera` logic on `QRScannerScreen`.
 - Implement QR generation on `QRGeneratorScreen`.
 - Wire the session deduction logic to the Supabase backend.
 
 **Phase 5: Polish & Run (Master Orchestrator)**
+
 - Review codebase for missing imports or TypeScript errors.
 - Ensure role-based routing cannot be bypassed.
 - Terminate swarm execution and report success.

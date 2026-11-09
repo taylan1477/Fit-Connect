@@ -1,0 +1,242 @@
+{
+  "App.tsx": {
+    "mtime": 1790698907.4203198,
+    "seen": 1794187134.8147764,
+    "ast_hash": "f858fb0e724a66d90236c9ba0ab58d12",
+    "semantic_hash": ""
+  },
+  "app.json": {
+    "mtime": 1790700016.4962723,
+    "seen": 1794187134.8147917,
+    "ast_hash": "d26158c005761a51971ccff2528dfb31",
+    "semantic_hash": ""
+  },
+  "index.ts": {
+    "mtime": 1790383685.5934758,
+    "seen": 1794187134.814798,
+    "ast_hash": "33caa6d28d87fc7e637c033d0d7124b1",
+    "semantic_hash": ""
+  },
+  "package.json": {
+    "mtime": 1790700009.6276727,
+    "seen": 1794187134.8148017,
+    "ast_hash": "6390fe39b386be9d0bdbfcf0d394b85d",
+    "semantic_hash": ""
+  },
+  "src/context/ThemeContext.tsx": {
+    "mtime": 1790650940.0688634,
+    "seen": 1794187134.8148046,
+    "ast_hash": "86dfc219323665480e8067da4b0c685b",
+    "semantic_hash": ""
+  },
+  "src/navigation/AppNavigator.tsx": {
+    "mtime": 1790822171.5389235,
+    "seen": 1794187134.8148065,
+    "ast_hash": "01ddef7ad20d9dd271106e1e737324ba",
+    "semantic_hash": ""
+  },
+  "src/screens/ClientDashboard.tsx": {
+    "mtime": 1790826208.0232453,
+    "seen": 1794187134.8148093,
+    "ast_hash": "aed9975fb2a08bd60a35d256c8ab24c6",
+    "semantic_hash": ""
+  },
+  "src/screens/ClientDetailScreen.tsx": {
+    "mtime": 1790827525.288951,
+    "seen": 1794187134.814812,
+    "ast_hash": "0ecd27299b0971a010d6fa8977aa3f02",
+    "semantic_hash": ""
+  },
+  "src/screens/ClientListScreen.tsx": {
+    "mtime": 1790886704.3598106,
+    "seen": 1794187134.8148146,
+    "ast_hash": "c18d738ac0eea922e1ec9b8005725f59",
+    "semantic_hash": ""
+  },
+  "src/screens/ClientMetricsHistoryScreen.tsx": {
+    "mtime": 1790787266.2468493,
+    "seen": 1794187134.814817,
+    "ast_hash": "9756866f92b14c078ad016758a1dfeb9",
+    "semantic_hash": ""
+  },
+  "src/screens/DailyWorkoutScreen.tsx": {
+    "mtime": 1790788699.7065206,
+    "seen": 1794187134.8148193,
+    "ast_hash": "4db958102181abf0420ee5dc5e09247f",
+    "semantic_hash": ""
+  },
+  "src/screens/DietTrackerScreen.tsx": {
+    "mtime": 1790822307.0676303,
+    "seen": 1794187134.814822,
+    "ast_hash": "f33ab48b1add46e7067441db2aafb6fc",
+    "semantic_hash": ""
+  },
+  "src/screens/MyMetricsScreen.tsx": {
+    "mtime": 1790787083.9273136,
+    "seen": 1794187134.814824,
+    "ast_hash": "3d7e6eb7a2df6a4927eaa28529acb146",
+    "semantic_hash": ""
+  },
+  "src/screens/NutritionTemplatesScreen.tsx": {
+    "mtime": 1790822160.048793,
+    "seen": 1794187134.8148265,
+    "ast_hash": "b9ac383c3fe975207d4f05b1dbacb2a3",
+    "semantic_hash": ""
+  },
+  "src/screens/ProgressGalleryScreen.tsx": {
+    "mtime": 1790827501.0473273,
+    "seen": 1794187134.8148289,
+    "ast_hash": "0f1ee33c7bc41e1e3ed46b208c48546a",
+    "semantic_hash": ""
+  },
+  "src/screens/QRGeneratorScreen.tsx": {
+    "mtime": 1790696208.8451242,
+    "seen": 1794187134.814831,
+    "ast_hash": "273eef6eb0ecefb64aaf71adcf645a9a",
+    "semantic_hash": ""
+  },
+  "src/screens/QRScannerScreen.tsx": {
+    "mtime": 1790827454.955753,
+    "seen": 1794187134.8148336,
+    "ast_hash": "466c2803c93d47b3442f9815ade7f703",
+    "semantic_hash": ""
+  },
+  "src/screens/TrainerDashboard.tsx": {
+    "mtime": 1790822188.657343,
+    "seen": 1794187134.8148358,
+    "ast_hash": "9868cd0ab78346ce806fd51266dc982d",
+    "semantic_hash": ""
+  },
+  "src/screens/WorkoutTemplatesScreen.tsx": {
+    "mtime": 1790787113.7244687,
+    "seen": 1794187134.8148382,
+    "ast_hash": "12b9f0ab153cd34c6618ec18e7340b00",
+    "semantic_hash": ""
+  },
+  "src/services/api.ts": {
+    "mtime": 1790886664.3583353,
+    "seen": 1794187134.81484,
+    "ast_hash": "c34d95b5d1b8aa08959939ffe886babe",
+    "semantic_hash": ""
+  },
+  "src/types/index.ts": {
+    "mtime": 1790827407.1048248,
+    "seen": 1794187134.8148425,
+    "ast_hash": "fe2144cb66112aeb45ff6652f55e775e",
+    "semantic_hash": ""
+  },
+  "src/utils/date.ts": {
+    "mtime": 1790787035.5290318,
+    "seen": 1794187134.8148444,
+    "ast_hash": "6c54e201c9fe87484564ffdfa39ccb12",
+    "semantic_hash": ""
+  },
+  "src/utils/supabase.ts": {
+    "mtime": 1790696162.499421,
+    "seen": 1794187134.8148475,
+    "ast_hash": "b32de9d2f3771928357fd76a8508c671",
+    "semantic_hash": ""
+  },
+  "supabase/functions/create-client/index.ts": {
+    "mtime": 1790886617.5062504,
+    "seen": 1794187134.8148494,
+    "ast_hash": "2e0dc74fb064256f1dbe8f7ce4316b9b",
+    "semantic_hash": ""
+  },
+  "tailwind.config.js": {
+    "mtime": 1790384100.426797,
+    "seen": 1794187134.8148515,
+    "ast_hash": "4a6d8588d9a8b0b88547416e489c4dd2",
+    "semantic_hash": ""
+  },
+  "tsconfig.json": {
+    "mtime": 1790886758.3252528,
+    "seen": 1794187134.814854,
+    "ast_hash": "96d4f40f1920ad797911b22e3b73a64f",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1794083883.0551028,
+    "seen": 1794187134.8148565,
+    "ast_hash": "2eddf5d6434dc198374654f50f7f2429",
+    "semantic_hash": ""
+  },
+  "docs/AGENTS.md": {
+    "mtime": 1790383738.7788043,
+    "seen": 1794187134.8148584,
+    "ast_hash": "233d1484702a528f5dcb4333cd01bb43",
+    "semantic_hash": ""
+  },
+  "docs/PROJECT_CONTEXT.md": {
+    "mtime": 1790642249.0394084,
+    "seen": 1794187134.8148608,
+    "ast_hash": "eb5f14bd7318a6c8812be8e657ee16c6",
+    "semantic_hash": ""
+  },
+  "docs/PT-AppLegacy.md": {
+    "mtime": 1790646817.8735163,
+    "seen": 1794187134.8148632,
+    "ast_hash": "5a111c466d0e411b63d49d32c62c9542",
+    "semantic_hash": ""
+  },
+  "docs/REQUIREMENTS.md": {
+    "mtime": 1790953113.019552,
+    "seen": 1794187134.814865,
+    "ast_hash": "dbcd0b8507c19a9bf3497072a8cdd705",
+    "semantic_hash": ""
+  },
+  "roadmap.md": {
+    "mtime": 1790817062.5014005,
+    "seen": 1794187134.8148673,
+    "ast_hash": "a3e4b37135c6c75d3f56a77773be28e1",
+    "semantic_hash": ""
+  },
+  "task.md": {
+    "mtime": 1790827580.9544964,
+    "seen": 1794187134.8148692,
+    "ast_hash": "413f3d503d23818d2c33da96c4f9b3a9",
+    "semantic_hash": ""
+  },
+  "assets/android-icon-background.png": {
+    "mtime": 1790383685.5855832,
+    "seen": 1794187134.8148713,
+    "ast_hash": "2d65569cc0e2afdcea0af9f9902d4173",
+    "semantic_hash": ""
+  },
+  "assets/android-icon-foreground.png": {
+    "mtime": 1790383685.5895295,
+    "seen": 1794187134.8148735,
+    "ast_hash": "72e71a9c846c6aa4ae32476641a00e18",
+    "semantic_hash": ""
+  },
+  "assets/android-icon-monochrome.png": {
+    "mtime": 1790383685.5895295,
+    "seen": 1794187134.8148756,
+    "ast_hash": "1e097dab989759fc0b69440092ca22cd",
+    "semantic_hash": ""
+  },
+  "assets/favicon.png": {
+    "mtime": 1790383685.5895295,
+    "seen": 1794187134.8148782,
+    "ast_hash": "d9f444efbdfbe7931aa93beada07318a",
+    "semantic_hash": ""
+  },
+  "assets/icon.png": {
+    "mtime": 1790558610.7914422,
+    "seen": 1794187134.81488,
+    "ast_hash": "2dafc09c1cd671d4f3001916acfec681",
+    "semantic_hash": ""
+  },
+  "assets/splash-icon.png": {
+    "mtime": 1790558610.8113844,
+    "seen": 1794187134.814882,
+    "ast_hash": "c2dca8a5867c7d9757234af719c3c42e",
+    "semantic_hash": ""
+  },
+  "package-lock.json": {
+    "mtime": 1790700014.2722845,
+    "seen": 1794187134.8148842,
+    "ast_hash": "455ba3f4b391910e9a8c226e3fb9d719",
+    "semantic_hash": ""
+  }
+}

@@ -21,6 +21,9 @@ expo-env.d.ts
 # Metro
 .metro-health-check*
 
+# Supabase CLI temp files
+supabase/.temp/
+
 # debug
 npm-debug.*
 yarn-debug.*
@@ -31,10 +34,16 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
+.env.production
 
 # typescript
 *.tsbuildinfo
+
+# graphify cache
+graphify-out/cache/
+graphify-out/.graphify_*
 
 # generated native folders
 /ios
